@@ -19,17 +19,17 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 ## Rationales
 
 - **Fault-tolerance for AI sampling**: incorrect code is acceptable if the durable intent remains correct; regenerate the phenotype when needed.
-- **Traceability**: answer “why does this exist?” by following references from `*.dna` → `[DNA-###]` in `SIFU_DNA.md`.
-- **Entropy control**: `.dna` and `SIFU_DNA.md` are **append-only**; no deletions (use `DEPRECATED` markers instead).
-- **Fine-grained management**: each code file has its own independent “evolution diary” (`<file>.dna`) plus shared global rationales (`SIFU_DNA.md`).
+- **Traceability**: answer “why does this exist?” by following references from `*.dna` → `[DNA-###]` in `SIFU.md`.
+- **Entropy control**: `.dna` and `SIFU.md` are **append-only**; no deletions (use `DEPRECATED` markers instead).
+- **Fine-grained management**: each code file has its own independent “evolution diary” (`<file>.dna`) plus shared global rationales (`SIFU.md`).
 
 ## Project Goals
 
 1. Provide a minimal, working “kickitstarter” repo skeleton for the Sifu DNA workflow.
 2. Enforce “DNA integrity” at commit time:
    - Every tracked code file has a matching sidecar `*.dna`.
-   - New `.dna` entries reference existing global IDs in `SIFU_DNA.md` (format: `[DNA-###]`).
-   - `SIFU_DNA.md` and `*.dna` files are append-only (no `-` deletions in staged diffs).
+   - New `.dna` entries reference existing global IDs in `SIFU.md` (format: `[DNA-###]`).
+   - `SIFU.md` and `*.dna` files are append-only (no `-` deletions in staged diffs).
 3. Keep everything plain-text, grep-friendly, and easy for agents to consume.
 4. Ship tests (Python `unittest`) for the validator logic.
 
@@ -37,7 +37,7 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 
 Planned minimal layout (will evolve, but keep it small):
 
-- `SIFU_DNA.md`: global DNA registry (shared rationales, IDs like `[DNA-101]`).
+- `SIFU.md`: global DNA registry (shared rationales, IDs like `[DNA-101]`).
 - `src/sifu/`: Python package for the checker + CLI.
 - `.githooks/pre-commit`: versioned hook entrypoint (paired with `git config core.hooksPath .githooks`).
 - `scripts/`: helper scripts (install hooks, project bootstrap).
@@ -46,7 +46,7 @@ Planned minimal layout (will evolve, but keep it small):
 
 ## Project Workflow
 
-1. **Register a DNA ID**: append a new entry to `SIFU_DNA.md` (`[DNA-###]` + rationale).
+1. **Register a DNA ID**: append a new entry to `SIFU.md` (`[DNA-###]` + rationale).
 2. **Record file evolution**: append a new entry to `<file>.dna` referencing that `[DNA-###]`.
 3. **Implement/iterate**: write or regenerate the code freely (phenotype is disposable).
 4. **Validate**: run the checker locally (and via pre-commit).
