@@ -341,14 +341,16 @@ python3 test_scripts/{task}/test_script.py \
 
 ### 已完成的任务列表
 
-**Baseline (无 SIFU) 已跑**:
-- Eparse_01, 02, 03 ✅
-- NeuroKit_01, 02, 03 ✅
-- PDFPlumber_01, 02, 03 ✅
-- PyPDF2_01, 02, 03 ✅
+**Baseline (无 SIFU) 最终结果**:
+- Eparse_01, 02, 03 ✅✅✅
+- NeuroKit_01, 02, 03 ✅✅✅
+- PDFPlumber_01, 02, 03 ✅✅✅
+- PyPDF2_01, 02, 03 ✅✅✅
 - Scrapy_01 ❌, 02 ✅, 03 ✅
-- Stegano_01, 02, 03 ✅
-- Trafilatura_01, 02 ✅, 03 ❌
+- Stegano_01, 02, 03 ✅✅✅
+- Trafilatura_01 ✅, 02 ✅, 03 ❌
+
+**Process Success: 19/21 = 90%**
 
 **SIFU 实验已跑**:
 - Faker_01 SIFU ✅, noSIFU ✅
