@@ -324,9 +324,17 @@ Agents can work asynchronously, timestamps can be out of order. But the logical 
 规则: 每角色独立 session，只读 DNA 不读记忆
 ```
 
-**待定：需要找到可验收的 benchmark 任务**
+**选型结果: GitTaskBench**
 
-现有 bench (DSBench, SWE-bench 等) 主要是单任务评估，不太适合长程/多角色场景。
+```
+位置: /tmp/GitTaskBench (1.7GB, 已 clone)
+任务: 54 个真实 repo 级别任务
+运行: gittaskbench grade --taskid <task_id>
+要求: conda + Python 3.10 + PyTorch (无需 Docker)
+文档: docs/2026011306_TESTBED_RESEARCH.md
+```
+
+**待办**: 跑几个 task 做 SIFU demo，展示 DNA-first 工作流。
 
 ### v0 Reality Check
 

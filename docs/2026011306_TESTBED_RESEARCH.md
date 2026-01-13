@@ -114,10 +114,19 @@ SIFU 需要的 testbed 特征：
 
 ## 下一步
 
-1. 清理 /tmp 的 clone
-2. 更新 SIFU.dna 记录决策
-3. 继续完善 SIFU 本身
-4. 等待真实用户/项目来验证
+**GitTaskBench 已 clone，下次继续测试**
+
+```
+位置: /tmp/GitTaskBench (1.7GB)
+任务: 54 个，如 Trafilatura_01, AnimeGANv3_01 等
+运行: gittaskbench grade --taskid <task_id>
+要求: conda + Python 3.10 + PyTorch (无需 Docker)
+```
+
+**计划**:
+1. 创建 conda 环境
+2. 选一个简单 task 跑 SIFU demo
+3. 展示 DNA-first 工作流
 
 ---
 
