@@ -1,5 +1,34 @@
 # Project Overview
 
+## Manifesto
+
+**Document First — Code's Not Important.**
+
+You can always sample different code from the same DNA.
+But DNA — the incremental history with no deletion, the spec, the audit trail, the trackable decision rationale — that's what matters.
+
+**DNA is the genotype. Code is the phenotype.**
+
+The phenotype can die, mutate, be resampled. The genotype persists.
+
+**Agents are ephemeral. Intent is eternal.**
+
+An agent can crash, play video games, go to Tesco — it doesn't matter. Once the decision is written, someone will come and implement. Same agent, different agent, next week, next year.
+
+**Wrong is OK. Deletion is not.**
+
+Bad decisions can exist. Mark them `DEPRECATED`, add new ones. The log shows the evolution of thinking. No judge needed — history is the judge.
+
+**Trade disk space for traceability.**
+
+We don't care if the disk explodes. We care that every decision has a lineage, every change has a rationale, every file has a story.
+
+**一日为师，终身为师。**
+
+Once under SIFU, always under SIFU. The master defines the rules, the apprentice practices freely within them. Different tools, same master.
+
+---
+
 ## Source of Truth
 
 Full design details: `docs/2026011220_SIFU_DESIGN.md`
