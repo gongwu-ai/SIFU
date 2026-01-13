@@ -31,34 +31,34 @@ DNA-first is a **git enhancement layer for agents**, not a replacement for human
 
 ## Naming & Hierarchy (Clarified)
 
-### SIFU.dna (not SIFU.md)
+### SIFU.dna (global DNA registry)
 
-`SIFU.dna` = meta DNA that governs **only** global rule documents.
+`SIFU.dna` is the global DNA registry: shared decision IDs + shared rationales for the whole codebase, plus governance rules for global process documents.
 
 ```
-SIFU.dna                          ← Meta DNA (rules ONLY global rule docs)
-├── CLAUDE.md                     ← Governed by SIFU.dna
-├── AGENTS.md                     ← Governed by SIFU.dna
-└── [other *.md rule docs]        ← Governed by SIFU.dna
+SIFU.dna                          ← Global DNA registry (IDs + shared rationales + global rules)
+├── CLAUDE.md                     ← Global process rules (governed by SIFU.dna)
+├── AGENTS.md                     ← Global process rules (governed by SIFU.dna)
+└── [other *.md rule docs]        ← Global process rules (governed by SIFU.dna)
 
 src/
 ├── foo.py
-├── foo.py.dna                    ← Independent (NOT under SIFU.dna)
+├── foo.py.dna                    ← Per-file DNA (independent log; may reference SIFU.dna IDs)
 ├── bar.py
-└── bar.py.dna                    ← Independent (NOT under SIFU.dna)
+└── bar.py.dna                    ← Per-file DNA (independent log; may reference SIFU.dna IDs)
 ```
 
 **Two separate domains:**
-1. **SIFU.dna** → governs global rule docs only
-2. **\*.dna sidecars** → govern their own code files, independently
+1. **SIFU.dna** → global registry + global process rules
+2. **\*.dna sidecars** → per-file DNA logs for their own code files
 
-No hierarchy between SIFU.dna and code-level DNA files.
+No automatic sync or enforcement hierarchy: `SIFU.dna` is a shared reference, and each `*.dna` remains its own append-only history.
 
 ---
 
 ## SIFU Supervision Model
 
-### 一日为师，终身为师 (Once a master, always a master)
+### Once a master, always a master
 
 **Inside SIFU supervision:**
 - ALL edits go through SIFU
@@ -86,7 +86,13 @@ No hierarchy between SIFU.dna and code-level DNA files.
 ✗ NOT OK: Different SIFU tries to intervene
 ```
 
-**Harness = just an agent.** Interchangeable under same SIFU.
+**Terminology (for this document):**
+- **Harness**: the runtime/tooling host (e.g., Claude Code, Cursor) that runs an agent.
+- **Agent**: the executor operating inside a harness.
+
+The boundary can blur in practice; this document keeps the distinction for clarity.
+
+**Harnesses are interchangeable under the same SIFU.**
 
 **SIFU = the master.** Only one SIFU per codebase. Another SIFU cannot take over.
 
@@ -105,8 +111,8 @@ foo.py                    →   foo.py (code only)
 
 New system can:
 - Use code freely
-- Start fresh DNA with their own harness
-- 烙印 (brand) their own signatures
+- Start fresh DNA under their own SIFU
+- Brand their own signatures
 - Maintain their own integrity
 
 ---
@@ -164,7 +170,7 @@ Timeline:
 ─────────────────────────────────────────────────────►
    │                                              │
    ▼                                              ▼
-Session start                            EOL/Compaction
+Session start                            EOL/compaction
    │                                              │
 	   │  ← Agent acting, making changes →            │
 	   │     (DNA not yet updated)                    │
@@ -204,7 +210,7 @@ Decision (DNA)  →  Impl attempt  →  Audit  →  Final record
 - Since code is regenerable from DNA (phenotype from genotype), that loss is acceptable.
 - No orphan-code problem exists (DNA always comes first).
 
-The only real edge case is bypassing SIFU and editing code directly; that violates 一日为师 anyway.
+The only real edge case is bypassing SIFU and editing code directly; that violates the "once a master, always a master" contract anyway.
 
 #### The core insight
 
@@ -416,7 +422,7 @@ The question "who judges more sufficient?" dissolves:
 
 | Question | Status | Key Insight |
 |----------|--------|-------------|
-| Q1: Trigger | **Resolved** | EOL/compact; DNA first, no orphan code; losing impl is OK |
+| Q1: Trigger | **Resolved** | EOL/compaction; DNA first, no orphan code; losing impl is OK |
 | Q2: Compression | **Resolved** | Already LLM-compressed (10-50 words); 1MB after 5 years is nothing |
 | Q3: Consistency | **Resolved** | No sync needed; local can violate global if logged; eventual consistency |
 | Q4: Wrong DNA | **Resolved** | Wrong is OK; no deletion; DEPRECATED + new; log is the judge |
@@ -447,7 +453,7 @@ Through our discussion, the design has shifted:
 | **Target** | Agentic systems (not human devs) |
 | **Trigger** | Agent EOL / context compaction |
 | **Enforcement** | SIFU daemon (medium-cost model) |
-| **Hierarchy** | Two domains: SIFU.dna (rules only) + *.dna (independent) |
+| **Hierarchy** | Two domains: SIFU.dna (global registry + global rules) + *.dna (independent) |
 | **Philosophy** | Same core, but deeper (DNA first, eventual consistency, wrong is OK) |
 | **Focus** | Lifecycle philosophy, not enforcement |
 
@@ -463,7 +469,7 @@ Through our discussion, the design has shifted:
 
 3. **From hierarchical → independent domains**
    - Original: SIFU_DNA.md rules everything
-   - Now: SIFU.dna only rules global docs, *.dna sidecars are independent
+   - Now: SIFU.dna is the global registry + rules global docs, *.dna sidecars are independent
 
 4. **From human+AI hybrid → pure agentic**
    - Original: Human writes DNA, AI samples code
@@ -486,12 +492,12 @@ Given this evolution, possible paths forward:
 
 For now, two core components:
 
-**1. Decision Rationale (决策理由)**
+**1. Decision Rationale**
 - Why this file exists
 - Why certain design choices were made
 - References to global DNA IDs from SIFU.dna
 
-**2. Implementation History (实现历史)**
+**2. Implementation History**
 - Per agent lifetime: what was changed during that session
 - Before commit, if agent modified the corresponding code, log the changes here
 - Tracks the evolution of the phenotype over time
@@ -530,7 +536,7 @@ foo.py.dna
 | `foo.py` | Pure phenotype (code only, disposable) |
 | `foo.py.dna` | Rationale + history (the "why" and "what changed") |
 
-Reference inspiration: `icml_position_paper/docs/drafts/introduction_v2_5.md` which combines 骨架/血肉 (content) with 写作思路/Rationale and 改动记录 (history).
+Reference inspiration: `icml_position_paper/docs/drafts/introduction_v2_5.md` which combines outline/prose content with a rationale section and a change log.
 
 DNA files may contain more in the future, but these two components are the foundation.
 
@@ -540,7 +546,7 @@ DNA files may contain more in the future, but these two components are the found
 
 The core question: **Where do we enforce DNA-first?**
 
-DNA-first means: no DNA record → no code change allowed. But at what boundary do we intercept?
+DNA-first means: no DNA record → cannot pass the chosen gate boundary. The open question is which boundary we intercept at.
 
 ### Three Gating Options
 
@@ -617,7 +623,7 @@ Continue working...
 **Pros**:
 - Stricter enforcement, agent cannot bypass
 - Violations caught immediately, not at commit time
-- Aligns with "一日为师" (once under SIFU, always under SIFU)
+- Aligns with the "once a master, always a master" contract
 
 **Cons**:
 - Requires modifying agent harness code
@@ -667,19 +673,140 @@ OS Layer:
 
 | Version | Gate | Rationale |
 |---------|------|-----------|
-| **Kickstarter v0** | Commit Gate | Simple, 60 lines Python, social contract phase |
+| **kickstarter v0** | Commit Gate | Simple, 60 lines Python, social contract phase |
 | **v1 (if stricter needed)** | Write Gate | Requires harness mod, but enables "brand" mechanism |
 | **v2 (if absolute security needed)** | Filesystem Gate | Probably never needed unless commercial product |
 
-For kickstarter, start with Commit Gate. Upgrade later if enforcement needs to be stricter.
+For kickstarter v0, start with Commit Gate. Upgrade later if enforcement needs to be stricter.
+
+---
+
+## Decisions (2026-01-13)
+
+### DNA File Format: Sidecar
+
+**Decision**: Use sidecar files (`foo.py` + `foo.py.dna`), not mixed-in comments.
+
+| Option | Structure | Verdict |
+|--------|-----------|---------|
+| **Sidecar** | `foo.py` + `foo.py.dna` | ✅ Chosen |
+| **Mixed** | DNA in code comments | ❌ Rejected |
+
+**Rationale**:
+- Separation aligns with philosophy: "Code is phenotype, disposable"
+- If DNA is mixed in code, deleting code deletes DNA
+- Independent DNA file is easier to protect and track
+- Agent-friendly: reading `.dna` file is simpler than parsing code comments
+
+### Session Change Record: Minimum Fields
+
+Each session record in a `.dna` file must contain:
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `timestamp` | ✅ Yes | When (timeline is the foundation of history) |
+| `agent_id` | ✅ Yes | Who (which agent session) |
+| `decision_refs` | ✅ Yes | Why (which DNA IDs justify this change) |
+| `changes` | ✅ Yes | What (natural language, 10-50 words) |
+| `commit_sha` | ❌ Optional | Backfill after commit |
+| `audit_status` | ❌ Optional | Backfill after audit |
+
+**Example**:
+```
+### Session: 2026-01-13T14:30:00 / agent-claude-abc123
+
+- Refs: [DNA-005], [DNA-012]
+- Changes:
+  - Added auth validation in check_token()
+  - Refactored error handling
+```
+
+### Enforcement Scope
+
+**Decision**: SIFU enforces **logging + append-only integrity** only.
+
+- Correctness and constraint satisfaction are out of scope for enforcement
+- Bad implementations may exist temporarily
+- Audit (automated or human) handles correctness later
+- Cleanup/resampling removes bad phenotypes when discovered
+
+### "Only One SIFU" Rule
+
+**Decision**: Start as social contract, add technical anchor later.
+
+- v0: Convention-based (teams agree to use one SIFU)
+- Future: Low-cost technical marker (e.g., `.sifu-lock` file with signature)
+
+---
+
+## Roadmap
+
+### Vision
+
+> Everyone opens SIFU before opening their agentic coding tool.
+
+SIFU becomes the standard gateway for agentic development. Whether you use Claude Code, Cursor, or any other harness, you start with SIFU.
+
+### Implementation Phases
+
+| Phase | Gate | Scope | Effort |
+|-------|------|-------|--------|
+| **v0 (Kickstarter)** | Commit Gate | Pre-commit hook validates DNA integrity | ~60 lines Python |
+| **v1** | Write Gate | SIFU wrapper intercepts tool calls before file writes | Harness integration |
+| **v2 (if needed)** | Filesystem Gate | OS-level enforcement via FUSE | Complex, likely unnecessary |
+
+### v0: Commit Gate (Kickstarter)
+
+```
+Workflow:
+1. Agent reads DNA, understands decisions
+2. Agent writes code (unguarded during session)
+3. Agent writes DNA (records session changes)
+4. git commit
+   → Pre-commit hook checks:
+     - Does *.dna exist for changed code files?
+     - Does *.dna have new entries?
+     - Do entries reference SIFU.dna IDs?
+   → Pass → Commit succeeds
+   → Fail → Commit rejected
+```
+
+**Deliverables**:
+- `scripts/sifu_check.py` (~60 lines)
+- `.githooks/pre-commit` (calls the checker)
+- `SIFU.dna` (initial global registry)
+- Documentation
+
+### v1: Write Gate
+
+```
+Workflow:
+1. Agent wants to write foo.py
+2. SIFU wrapper intercepts the Edit/Write call
+3. Check: Does foo.py.dna have a record for this session?
+   → Yes → Allow write
+   → No → Reject, agent must write DNA first
+4. Agent writes DNA first
+5. Agent writes code (now allowed)
+6. git commit (DNA already in place)
+```
+
+**Deliverables**:
+- SIFU wrapper/daemon
+- Integration with Claude Code (and potentially other harnesses)
+- Enhanced DNA validation
+
+**Why v1 matters**:
+- True DNA-first enforcement (not just commit-time)
+- Enables "brand" mechanism: only SIFU-aware harnesses can write
+- Aligns with "once a master, always a master" contract
 
 ---
 
 ## Next Steps
 
-All questions resolved (Q1-Q4). Design has evolved significantly from original initiative.
-
-Pending decisions:
-1. DNA content structure defined (rationale + history)
-2. 卡住机制待定 (commit gate vs write gate vs filesystem gate)
-3. Implementation path 待定 (hook / daemon / both)
+1. ✅ Q1-Q4 resolved
+2. ✅ DNA content structure defined (rationale + session history)
+3. ✅ Gating mechanism defined (commit gate for v0, write gate for v1)
+4. ✅ Roadmap established (v0 → v1 → v2)
+5. ⏳ Implement v0 kickstarter
