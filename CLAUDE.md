@@ -295,11 +295,38 @@ Agents can work asynchronously, timestamps can be out of order. But the logical 
 
 需要一个完全启用 SIFU 的项目来观察真实问题。
 
-**待定任务选项：**
-- AI-IMO
-- ML bench
-- Paper bench
-- 其他
+**评估 SIFU 的两个任务方向：**
+
+| 方向 | 特征 | SIFU 价值体现 |
+|------|------|---------------|
+| **长程多决策** | 单 agent 跨多 session，累积多个设计决策 | DNA 追踪决策演变，跨 session 一致性 |
+| **多角色协作** | 多 agent 接力，PM→架构→开发→QA | DNA 作为角色间唯一沟通渠道 |
+
+**长程多决策示例：**
+```
+从 0 到 1 开发 CLI 工具
+├── Session 1: 需求分析 + 核心设计
+├── Session 2: 实现核心功能
+├── Session 3: 添加扩展功能
+├── Session 4: 重构 + 优化
+└── Session 5: 测试 + 文档
+每个 session 产生多个 [DNA-xxx] 决策
+```
+
+**多角色协作示例：**
+```
+模拟软件开发团队
+├── PM: requirements.md + .dna
+├── 架构师: design.md + .dna
+├── 后端: api/*.py + .dna
+├── 前端: cli/*.py + .dna
+└── QA: tests/*.py + .dna
+规则: 每角色独立 session，只读 DNA 不读记忆
+```
+
+**待定：需要找到可验收的 benchmark 任务**
+
+现有 bench (DSBench, SWE-bench 等) 主要是单任务评估，不太适合长程/多角色场景。
 
 ### v0 Reality Check
 
