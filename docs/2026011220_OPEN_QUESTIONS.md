@@ -536,77 +536,142 @@ DNA files may contain more in the future, but these two components are the found
 
 ---
 
-## 卡住机制 (Gating/Blocking Mechanism)
+## Gating Mechanism (Enforcement Boundary)
 
-"卡住" = 在哪个边界强制执行 DNA-first 规则
+The core question: **Where do we enforce DNA-first?**
 
-### 三种卡住选项
+DNA-first means: no DNA record → no code change allowed. But at what boundary do we intercept?
 
-| 选项 | 卡在哪里 | 什么时候拦截 | 实现方式 |
-|------|----------|--------------|----------|
-| **Commit Gate** | Git 提交时 | `git commit` 被触发时 | Pre-commit hook (~60行 Python) |
-| **Write Gate** | 文件写入前 | Agent 调用 Edit/Write 工具时 | SIFU wrapper 拦截工具调用 |
-| **Filesystem Gate** | 操作系统层 | 任何进程写文件时 | FUSE 文件系统层拦截 |
+### Three Gating Options
 
-### 详细解释
+| Option | Where | When intercepted | Implementation |
+|--------|-------|------------------|----------------|
+| **Commit Gate** | At git commit | When `git commit` is triggered | Pre-commit hook (~60 lines Python) |
+| **Write Gate** | Before file write | When agent calls Edit/Write tools | SIFU wrapper intercepts tool calls |
+| **Filesystem Gate** | At OS level | When any process writes a file | FUSE filesystem layer |
 
-**1. Commit Gate (提交时卡住)**
+---
+
+### Option 1: Commit Gate
+
 ```
-Agent 工作中...
-  ↓
-修改 foo.py (没人管)
-  ↓
-git commit
-  ↓
-Pre-commit hook 检查:
-  - foo.py.dna 存在吗？
-  - foo.py.dna 有新增记录吗？
-  - 记录引用了 SIFU.dna 的 ID 吗？
-  ↓
-不符合 → 拒绝提交
-符合 → 允许提交
+Timeline:
+────────────────────────────────────────────────────►
+Agent starts    Modifies code    More changes    git commit
+    │               │                │               │
+    │               │                │               ▼
+    │          (unguarded)      (unguarded)     Hook checks
+    │                                                │
+    │                                          Pass/Reject
 ```
 
-**优点**: 简单，用现有 Git 机制
-**缺点**: Agent 可以绕过（直接写文件不 commit）
+**Essence**: Write whatever you want, but at commit time, you must comply.
 
-**2. Write Gate (写入时卡住)**
+**Analogy**: You can scribble on scratch paper during an exam, but the answer sheet must be correct when submitted.
+
+**Checks performed**:
+- Does `foo.py.dna` exist?
+- Does `foo.py.dna` have new entries?
+- Do entries reference IDs from `SIFU.dna`?
+
+**Pros**:
+- Simple, uses existing Git mechanism
+- ~60 lines of Python
+- No harness modification needed
+
+**Cons**:
+- Agent can bypass (write files without committing)
+- Non-compliant code can exist temporarily
+- Relies on eventual commit to catch violations
+
+---
+
+### Option 2: Write Gate
+
 ```
-Agent 想修改 foo.py
-  ↓
-调用 Edit/Write 工具
-  ↓
-SIFU wrapper 拦截:
-  - foo.py.dna 存在吗？
-  - 本次 session 有记录吗？
-  ↓
-不符合 → 工具调用被拒绝
-符合 → 允许写入
+Timeline:
+────────────────────────────────────────────────────►
+Agent wants to write foo.py
+    │
+    ▼
+SIFU Wrapper intercepts
+    │
+    ├── foo.py.dna has record?
+    │       │
+    │       ├── Yes → Allow write
+    │       └── No → Reject, agent must write DNA first
+    │
+    ▼
+Continue working...
 ```
 
-**优点**: 更严格，Agent 无法绕过
-**缺点**: 需要改 Agent harness（如 Claude Code 的工具层）
+**Essence**: Every write operation must pass the gate. No DNA = no write.
 
-**3. Filesystem Gate (文件系统层卡住)**
+**Analogy**: Every dish is inspected before serving, not after the meal is finished.
+
+**Implementation**:
+- Add wrapper layer in agent harness (e.g., Claude Code)
+- Intercept `Edit`, `Write` tool calls
+- Check target file's `.dna` exists and has records
+
+**Pros**:
+- Stricter enforcement, agent cannot bypass
+- Violations caught immediately, not at commit time
+- Aligns with "一日为师" (once under SIFU, always under SIFU)
+
+**Cons**:
+- Requires modifying agent harness code
+- Different harnesses (Cursor, Claude Code, custom) need separate modifications
+- More implementation effort
+
+---
+
+### Option 3: Filesystem Gate
+
 ```
-任何进程想写 foo.py
-  ↓
-OS 文件系统层拦截
-  ↓
-FUSE/内核模块检查 DNA 规则
-  ↓
-不符合 → Permission denied
-符合 → 允许写入
+OS Layer:
+┌─────────────────────────────────────────────────┐
+│              FUSE Filesystem                    │
+│                                                 │
+│  Any write → Check DNA rules → Allow/Deny      │
+│                                                 │
+└─────────────────────────────────────────────────┘
+                    ▲
+                    │
+        Any process (Agent, human, script)
 ```
 
-**优点**: 最严格，任何东西都无法绕过
-**缺点**: 复杂，跨平台难，性能开销
+**Essence**: OS-level interception. Nobody can bypass.
 
-### 推荐路径
+**Analogy**: Bank vault access control. Whether you're the CEO or a robber, no correct credentials = no entry.
 
-对于 kickstarter v0:
-- **Commit Gate** 最简单，可以先用这个
-- 后期如果需要更严格，再升级到 Write Gate
+**Implementation**:
+- Write FUSE module or kernel extension
+- Intercept all file writes to monitored paths
+- Check DNA rules before allowing write
+
+**Pros**:
+- Most strict, nothing can bypass
+- Works for any process, not just agents
+- True "brand lock" on the codebase
+
+**Cons**:
+- Complex implementation (FUSE module or kernel extension)
+- Cross-platform difficulty (macOS, Linux, Windows differ)
+- Performance overhead
+- Overkill for kickstarter
+
+---
+
+### Recommended Path
+
+| Version | Gate | Rationale |
+|---------|------|-----------|
+| **Kickstarter v0** | Commit Gate | Simple, 60 lines Python, social contract phase |
+| **v1 (if stricter needed)** | Write Gate | Requires harness mod, but enables "brand" mechanism |
+| **v2 (if absolute security needed)** | Filesystem Gate | Probably never needed unless commercial product |
+
+For kickstarter, start with Commit Gate. Upgrade later if enforcement needs to be stricter.
 
 ---
 
