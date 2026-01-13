@@ -7,6 +7,30 @@
 
 ---
 
+## ⚠️ CRITICAL WARNING FOR ALL AGENTS ⚠️
+
+**If you are asked to spawn a subagent to run GLM-4.5-flash experiments:**
+
+**❌ DO NOT USE `Task` tool with Haiku wrapper!**
+- Haiku wrapper agents will **IGNORE** the bash command and **DO THE TASK THEMSELVES**
+- This means GLM is NOT actually running - Haiku is doing the work instead
+- All previous baseline_run1 tasks (7/8) were accidentally run with Haiku, NOT GLM
+
+**✅ CORRECT WAY:**
+- Use `Bash` tool DIRECTLY with `run_in_background=true`
+- Set env vars inline: `ANTHROPIC_AUTH_TOKEN="..." ANTHROPIC_BASE_URL="..." claude --model glm-4.5-flash ...`
+- Monitor output with `tail -f` or check exit code
+
+**Why this happens:**
+- When you tell a Haiku agent: "Run this command: `claude --model glm-4.5-flash '<task description>'`"
+- Haiku sees the task description and thinks: "Oh I can do this task directly!"
+- Haiku does the task itself instead of executing the bash command
+- GLM never runs
+
+**Lesson learned:** Wrapper agents are too smart for their own good. Use direct Bash execution.
+
+---
+
 ## Manifesto
 
 **Document First — Code's Not Important.**
