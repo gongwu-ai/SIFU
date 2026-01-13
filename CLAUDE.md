@@ -29,6 +29,8 @@
 
 **Lesson learned:** Wrapper agents are too smart for their own good. Use direct Bash execution.
 
+**Meta-lesson:** The agent who wrote this warning immediately ignored it and used `&` instead of `run_in_background=true`. Don't be that agent. Read your own instructions.
+
 ---
 
 ## Manifesto
