@@ -423,6 +423,63 @@ The question "who judges more sufficient?" dissolves:
 
 ---
 
+## Evolution from Original Initiative
+
+### Original Design (from chat_log.dna)
+
+The original conversation envisioned:
+
+| Aspect | Original Design |
+|--------|-----------------|
+| **Target** | Human devs using AI agents |
+| **Trigger** | Git pre-commit hook |
+| **Enforcement** | ~60 line Python script |
+| **Hierarchy** | `SIFU_DNA.md` → governs all `*.dna` files |
+| **Philosophy** | "Document First - Code's Not Important" |
+| **Focus** | Enforcement mechanisms |
+
+### What We've Evolved To
+
+Through our discussion, the design has shifted:
+
+| Aspect | Current Design |
+|--------|----------------|
+| **Target** | Agentic systems (not human devs) |
+| **Trigger** | Agent EOL / context compaction |
+| **Enforcement** | SIFU daemon (medium-cost model) |
+| **Hierarchy** | Two domains: SIFU.dna (rules only) + *.dna (independent) |
+| **Philosophy** | Same core, but deeper (DNA first, eventual consistency, wrong is OK) |
+| **Focus** | Lifecycle philosophy, not enforcement |
+
+### Key Shifts
+
+1. **From git hook → agent lifecycle**
+   - Original: Tied to human commit behavior
+   - Now: Tied to agent death/forgetting
+
+2. **From enforcement → philosophy**
+   - Original: "Script blocks bad commits"
+   - Now: "DNA comes first, code follows, loss is acceptable"
+
+3. **From hierarchical → independent domains**
+   - Original: SIFU_DNA.md rules everything
+   - Now: SIFU.dna only rules global docs, *.dna sidecars are independent
+
+4. **From human+AI hybrid → pure agentic**
+   - Original: Human writes DNA, AI samples code
+   - Now: Agents under SIFU supervision, harnesses interchangeable
+
+### Implementation Options
+
+Given this evolution, possible paths forward:
+
+1. **Pre-commit hook** (original ~60 lines) - simpler, works today, for hybrid workflows
+2. **SIFU daemon** - bigger, needs agent harness integration, for pure agentic workflows
+3. **Both** - hook for hybrid, daemon for pure agentic
+4. **Document only** - defer implementation, solidify philosophy first
+
+---
+
 ## Next Steps
 
-All questions resolved (Q1-Q4). Ready for implementation.
+All questions resolved (Q1-Q4). Design has evolved significantly from original initiative. Ready for implementation decision.
