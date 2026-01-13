@@ -1,10 +1,30 @@
 # SIFU.dna - Global DNA Registry
-#
-# Format: [DNA-###] Description
-# Rules: Append-only. To invalidate, add DEPRECATED marker and new entry.
 
-[DNA-001] DNA-first development: decision before implementation, always.
-[DNA-002] Phenotype disposable: code can be deleted and regenerated from DNA.
-[DNA-003] Wrong is OK: bad DNA can exist; use DEPRECATED + new entry, never delete.
-[DNA-004] Eventual consistency: local .dna can diverge from global if logged.
-[DNA-005] Logging only: SIFU enforces logging + append-only, not correctness.
+> **Format**: `[DNA-###]` Description
+> **Rules**: Append-only. To invalidate, add ~~DEPRECATED~~ marker and new entry.
+
+---
+
+## Core Principles
+
+- **[DNA-001]** DNA-first development: decision before implementation, always.
+- **[DNA-002]** Phenotype disposable: code can be deleted and regenerated from DNA.
+- **[DNA-003]** Wrong is OK: bad DNA can exist; use DEPRECATED + new entry, never delete.
+- **[DNA-004]** Eventual consistency: local .dna can diverge from global if logged.
+- **[DNA-005]** Logging only: SIFU enforces logging + append-only, not correctness.
+
+---
+
+## 2026-01-13 Session Decisions
+
+> **NOTE**: 以下是开发讨论中的决策记录，非正式 SIFU 流程。
+> 正式内容见 `CLAUDE.md` 和 `docs/2026011303_V1_WRITE_GATE_DESIGN.md`
+
+- **[DNA-006]** DNA ≠ Commit: DNA update and git commit are independent operations.
+- **[DNA-007]** Decision > History: Only Decision Rationale has value; Implementation History is low-value log.
+- **[DNA-008]** 宁滥勿缺: When unsure if rationale is needed, write it. Disk space is cheap.
+- **[DNA-009]** Agent Trust via iteration: Bad rationale self-heals through agent succession.
+- **[DNA-010]** Bootstrap safety: SIFU must not block its own development.
+- ~~**[DNA-011]** SIFU Daemon~~: Was planned for v1.2, removed as unnecessary (莫须有).
+- **[DNA-012]** Testbed required: Need separate project with full SIFU enforcement to observe real issues.
+- **[DNA-013]** 0号 DNA unnecessary: File purpose emerges from its rationales, no explicit meta needed.

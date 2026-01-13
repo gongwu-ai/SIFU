@@ -264,19 +264,31 @@ SIFU Daemon is valuable but adds complexity. v1.0 focuses on Write Gate enforcem
 - [ ] On threshold hit → stderr warning, no block
 - [ ] Agent decides whether to commit
 
-### ~~v1.2: SIFU Daemon~~ (已砍掉)
+### v1.2: Smart Rationale Reading
+- [ ] 选型决定 (A: agent grep / B: 工具 / C: 分离文件)
+- [ ] 实现只读 Rationale 区域
+- [ ] 避免上下文爆炸
 
-**砍掉原因：莫须有的设计**
+### v1.3: Incremental Rationale
+- [x] 判断公式已定义 (future_agent.会问("为什么？"))
+- [x] 宁滥勿缺原则已确定
+- [ ] 文档化到 agent 指南
+
+### Testbed
+- [ ] 选择任务类型 (AI-IMO / ML bench / Paper bench / 其他)
+- [ ] 创建独立项目
+- [ ] 完全启用 SIFU (v0 + v1)
+- [ ] 观察真实问题
+
+### ~~SIFU Daemon~~ (已砍掉)
+
+**砍掉原因：莫须有的设计 [DNA-011]**
 
 经过 CS 分析，Daemon 解决的是不存在的问题：
 - v1.0 Write Gate 保证 DNA 在代码前写入
 - 不存在 "DNA 积压" 的情况
 - 不 commit 不影响 DNA 安全（DNA 已在磁盘）
 - 多 agent 并发各写各的，不冲突
-
-Daemon 唯一可能有用的场景（边缘 case）：
-- Agent 写 DNA 写到一半 crash → 文件损坏
-- 但这是文件系统问题，不是 SIFU 问题
 
 ---
 
@@ -346,6 +358,9 @@ Sifu/
 > **"SIFU 强制的是流程，不是真相"**
 
 > **"DNA 更新 ≠ Commit，两者不是捆绑的"**
+
+> **"Agent Trust 靠迭代自愈"**
+> 恶意 agent 写假 rationale → EOL → 新 agent 发现做不通 → DEPRECATED → 系统自愈。
 
 > **"Decision 有价值，History 是低价值 log，丢了无所谓"**
 

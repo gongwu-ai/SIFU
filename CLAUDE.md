@@ -80,6 +80,7 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 | **DNA ≠ Commit** | DNA update and git commit are independent operations. DNA is the goal, commit is optional. |
 | **Decision > History** | Only Decision Rationale has real value. Implementation History is low-value log, losing it is OK. |
 | **宁滥勿缺** | When unsure if rationale is needed, write it. Disk space is cheap, lost knowledge is not. |
+| **Bootstrap 安全** | SIFU must not block its own development. During dev, disable enforcement to avoid self-deadlock. |
 
 ## Design Punchlines (设计哲学金句)
 
@@ -95,7 +96,10 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 > Causal order > temporal order. Decision → Implementation.
 
 > **"SIFU 强制的是流程，不是真相"**
-> 结构完整性 ≠ 内容真实性。Agent Trust Problem 是 open question.
+> 结构完整性 ≠ 内容真实性。但系统通过 agent 迭代自愈。
+
+> **"Agent Trust 靠迭代自愈"**
+> 恶意 agent 写假 rationale → EOL → 新 agent 发现按 rationale 做不通 → 标记 DEPRECATED → 写真 rationale → 系统自愈。
 
 > **"DNA 更新 ≠ Commit，两者不是捆绑的"**
 > DNA 是 genotype 持久化，commit 是 phenotype 快照。独立操作。
@@ -105,6 +109,15 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 
 > **"宁滥勿缺：不确定就写"**
 > Trade disk space for traceability. 漏写 = 知识丢失，多写 = 无所谓。
+
+> **"SIFU 不能把自己搞死"**
+> Bootstrap problem: 开发 SIFU 时必须禁用 SIFU，避免 buggy 代码造成死循环。
+
+> **"人作为 SIFU 不可靠"**
+> 半 bootstrap 靠人监督，但人会遗漏。需要真实 testbed 让 agent 在 SIFU 下工作，观察问题。
+
+> **"0号 DNA 不需要"**
+> 文件存在的原因从其 rationale 涌现，不需要显式 meta 声明。Purpose = emergent property.
 
 ### Rationale 判断公式
 
@@ -117,31 +130,66 @@ else:
 # 不确定？写！
 ```
 
-## DNA Content Structure
+## DNA Format Specification
 
-Each `.dna` file contains two layers:
+**.dna 文件使用 Markdown 语法**，未来可演变为 `.dmd` (DNA Markdown)。
 
-**1. Decision Rationale**
-- Why this file exists
-- Design choices and constraints
-- References to global `[DNA-###]` IDs from `SIFU.dna`
+### 语法规范
 
-**2. Implementation History** (per agent session)
-- `timestamp`: When
-- `agent_id`: Who (which agent session)
-- `decision_refs`: Why (which DNA IDs justify this change)
-- `changes`: What (natural language, 10-50 words)
+| 元素 | Markdown 语法 | 用途 |
+|------|---------------|------|
+| 分组 | `## Section` | 分隔 Rationale / History |
+| DNA ID | `**[DNA-###]**` | 强调决策 ID |
+| 列表 | `- item` | 条目 |
+| DEPRECATED | `~~[DNA-###]~~` | 标记废弃 |
+| 说明 | `> blockquote` | 备注信息 |
+| 会话 | `### Session: ...` | 实现历史条目 |
 
-Example:
-```
+### 文件结构
+
+每个 `.dna` 文件包含两层：
+
+**1. Decision Rationale** (高价值，必须保护)
+- 为什么这个文件存在
+- 设计决策和约束
+- 引用 `SIFU.dna` 中的 `[DNA-###]` ID
+
+**2. Implementation History** (低价值，丢失可重建)
+- `Session`: 时间戳 / agent-id
+- `Refs`: 引用的 DNA ID
+- `Changes`: 变更描述 (10-50 words)
+
+### 示例
+
+```markdown
+# foo.py.dna
+
 ## Decision Rationale
-- [DNA-001] This file handles user authentication.
-- [DNA-005] Chose JWT for stateless scaling.
+
+- **[DNA-001]** This file handles user authentication.
+- **[DNA-005]** Chose JWT for stateless scaling.
 
 ## Implementation History
+
 ### Session: 2026-01-13T14:30:00 / agent-claude-abc123
 - Refs: [DNA-005]
 - Changes: Added JWT validation in check_token()
+
+### Session: 2026-01-14T10:00:00 / agent-claude-xyz789
+- Refs: [DNA-001]
+- Changes: Added rate limiting for login attempts
+```
+
+### SIFU.dna 示例
+
+```markdown
+# SIFU.dna - Global DNA Registry
+
+## Core Principles
+
+- **[DNA-001]** DNA-first development: decision before implementation.
+- **[DNA-002]** Phenotype disposable: code can be regenerated from DNA.
+- ~~**[DNA-003]**~~ DEPRECATED: Old principle, replaced by [DNA-010].
 ```
 
 ## DNA Validation Rules (v0)
@@ -186,8 +234,32 @@ Agents can work asynchronously, timestamps can be out of order. But the logical 
 | Phase | Gate | Language | Status |
 |-------|------|----------|--------|
 | **v0** | Commit Gate | Python | POC only - not usable standalone |
-| **v1** | Write Gate | TypeScript | ✅ Implemented - requires CC hooks |
-| **v2 (if needed)** | Filesystem Gate | TBD (Rust?) | OS-level enforcement via FUSE |
+| **v1.0** | Write Gate | TypeScript | ✅ Implemented |
+| **v1.1** | Threshold Warning | TypeScript | ⏳ Pending |
+| **v1.2** | Smart Rationale Reading | TypeScript | ⏳ Pending (选型中) |
+| **v1.3** | Incremental Rationale | - | ⏳ Pending (逻辑已定) |
+| ~~v1.2~~ | ~~SIFU Daemon~~ | - | ❌ 砍掉 (莫须有) |
+| **Testbed** | 真实实践项目 | - | ⏳ 待定任务 |
+| **v2** | Filesystem Gate | TBD (Rust?) | 未来 |
+
+### v1.x 详情
+
+| 版本 | 功能 | 说明 |
+|------|------|------|
+| v1.0 | Write Gate | PreToolUse hook，阻止无 DNA 的写入 |
+| v1.1 | Threshold Warning | PostToolUse hook，超 1000 行警告 |
+| v1.2 | Smart Rationale Reading | 只读 Rationale 区域避免上下文爆炸 |
+| v1.3 | Incremental Rationale | 判断公式 + 宁滥勿缺 |
+
+### Testbed
+
+需要一个完全启用 SIFU 的项目来观察真实问题。
+
+**待定任务选项：**
+- AI-IMO
+- ML bench
+- Paper bench
+- 其他
 
 ### v0 Reality Check
 
@@ -212,7 +284,7 @@ v1 uses Claude Code's PreToolUse hooks to intercept Edit/Write tools. See `docs/
 - Write interception via CC hooks (exit code 2 = block)
 - DNA-first enforcement at tool call level
 - Write threshold (force commit after N lines) *(v1.1)*
-- SIFU daemon for auto-summarization *(v1.2)*
+- ~~SIFU daemon for auto-summarization~~ *(砍掉 - 莫须有)*
 
 **Vision**: Everyone opens SIFU before opening their agentic coding tool.
 
@@ -246,6 +318,33 @@ Agent calls Write/Edit tool
         │
         └── file.dna missing? → exit 2 → BLOCKED
                                          └── "Create .dna first"
+```
+
+### Development Mode (开发 SIFU 时)
+
+**⚠️ Bootstrap Safety: 开发 SIFU 本身时必须禁用 SIFU 避免死循环！**
+
+```bash
+# 禁用 v0 (pre-commit hook)
+git config --unset core.hooksPath
+
+# 禁用 v1 (Write Gate)
+mv .claude/settings.json .claude/settings.json.disabled
+
+# 恢复 v0
+git config core.hooksPath .githooks
+
+# 恢复 v1
+mv .claude/settings.json.disabled .claude/settings.json
+```
+
+**当前状态检查：**
+```bash
+# v0 是否启用？
+git config core.hooksPath  # 有输出 = 启用
+
+# v1 是否启用？
+ls .claude/settings.json   # 存在 = 启用
 ```
 
 ## Project Goals
