@@ -159,11 +159,57 @@ claude --print --dangerously-skip-permissions "任务描述"
 /tmp/GitTaskBench/.venv/  # Python 3.10 环境
 ```
 
+### 测试结果更新
+
+| Task | 状态 | DNA-first | 输出正确 |
+|------|------|-----------|----------|
+| Faker_01 | ✅ 成功 | ✅ | ✅ 100 rows |
+| Faker_02 | ✅ 成功 | ✅ | ✅ 5 companies |
+| Faker_03 | ⏳ 待测 | - | - |
+
+**当前成功率: 2/2 = 100% (GLM-4.7)**
+
+---
+
+## 实验设计：SIFU 对弱模型的提升效果
+
+### 假设
+
+SIFU 的 DNA-first 约束能提升弱模型的任务成功率，因为：
+1. 强制先思考（写 DNA）再行动（写代码）
+2. 结构化的决策记录减少遗漏
+3. 即使模型能力弱，流程保证了质量
+
+### 实验计划
+
+| 模型 | 无 SIFU 成功率 | 有 SIFU 成功率 | 提升 |
+|------|----------------|----------------|------|
+| GLM-4.5 | ? | ? | ? |
+| GLM-4.5 Flash | ? | ? | ? |
+| GLM-4.7 | baseline | 2/2 (100%) | - |
+
+### 测试方法
+
+```bash
+# 有 SIFU（当前方法）
+claude --print --dangerously-skip-permissions "按SIFU规则完成任务..."
+
+# 无 SIFU（对照组）
+claude --print --dangerously-skip-permissions "完成任务..." # 不提 DNA-first
+```
+
+### 待确认
+
+- GLM-4.5 API endpoint 是否相同？
+- GLM-4.5 Flash 是否存在？
+- 需要跑多少 task 才有统计意义？（建议 10+）
+
 ### 下一步
 
-1. 完成 Faker_02, Faker_03 测试
-2. 统计成功率
-3. 尝试更多复杂任务
+1. 确认 GLM-4.5 / Flash 的 model name
+2. 设计对照实验（有/无 SIFU）
+3. 批量跑 10+ tasks
+4. 统计成功率对比
 
 ---
 
