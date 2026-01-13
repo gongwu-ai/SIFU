@@ -1,56 +1,127 @@
 # Project Overview
 
+## Source of Truth
+
+Full design details: `docs/2026011220_SIFU_DESIGN.md`
+
 ## Initiative
 
-Build a minimal “kickitstarter” for **DNA-first development**:
+Build a minimal "kickstarter" for **DNA-first development**:
 - **DNA (genotype)** is the durable intent/rationale history.
 - **Code (phenotype)** is a disposable sample that can be regenerated from DNA.
 
 The initial milestone is a tiny, plain-text system + tooling that makes AI-assisted coding safe and trackable by enforcing per-file `.dna` sidecars and an append-only global registry.
 
+## Target Audience
+
+**This is NOT for human coding.** Git works fine there.
+
+**This IS for:**
+- **Agentic systems** (no human, auto-run for long periods)
+- **Agentic orchestration systems** (human may exist, directing agents)
+
+DNA-first is a **git enhancement layer for agents**, not a replacement for human git workflow.
+
 ## Story
 
-`Sifu` (师傅) frames the workflow as “师傅定规矩，徒弟去修行”:
-- Humans define/curate the “why” (design intent) as DNA.
-- Agents (or humans) iterate on implementations freely, as long as they respect the DNA constraints.
+`Sifu` (师傅) frames the workflow as "师傅定规矩，徒弟去修行":
+- Humans or agents define/curate the "why" (design intent) as DNA.
+- Agents iterate on implementations freely, as long as they respect the DNA constraints.
+
+**Once a master, always a master**: Once a codebase is under SIFU supervision, all edits must go through SIFU. Different harnesses (Claude Code, Cursor, etc.) are interchangeable under the same SIFU, but a different SIFU cannot take over.
 
 We explicitly **trade disk space for traceability and resilience**: keep fine-grained history in `.dna` files so implementations can be replaced without losing rationale.
 
-## Rationales
+## Core Philosophy
 
-- **Fault-tolerance for AI sampling**: incorrect code is acceptable if the durable intent remains correct; regenerate the phenotype when needed.
-- **Traceability**: answer “why does this exist?” by following references from `*.dna` → `[DNA-###]` in `SIFU.md`.
-- **Entropy control**: `.dna` and `SIFU.md` are **append-only**; no deletions (use `DEPRECATED` markers instead).
-- **Fine-grained management**: each code file has its own independent “evolution diary” (`<file>.dna`) plus shared global rationales (`SIFU.md`).
+| Principle | Explanation |
+|-----------|-------------|
+| **DNA-first** | Decision before implementation, always. No code without DNA. |
+| **Phenotype disposable** | Code can be deleted and regenerated from DNA anytime. |
+| **Wrong is OK** | Bad DNA can exist; use `DEPRECATED` + new entry, never delete. |
+| **Eventual consistency** | Local `.dna` can violate global rules if the violation is logged. |
+| **Logging only** | SIFU enforces logging + append-only, not correctness. Audit handles correctness. |
+| **No orphan code** | DNA comes first, so code always has lineage. Losing impl is OK, losing lineage is not. |
+
+## DNA Content Structure
+
+Each `.dna` file contains two layers:
+
+**1. Decision Rationale**
+- Why this file exists
+- Design choices and constraints
+- References to global `[DNA-###]` IDs from `SIFU.dna`
+
+**2. Implementation History** (per agent session)
+- `timestamp`: When
+- `agent_id`: Who (which agent session)
+- `decision_refs`: Why (which DNA IDs justify this change)
+- `changes`: What (natural language, 10-50 words)
+
+Example:
+```
+## Decision Rationale
+- [DNA-001] This file handles user authentication.
+- [DNA-005] Chose JWT for stateless scaling.
+
+## Implementation History
+### Session: 2026-01-13T14:30:00 / agent-claude-abc123
+- Refs: [DNA-005]
+- Changes: Added JWT validation in check_token()
+```
+
+## Roadmap
+
+| Phase | Gate | Description |
+|-------|------|-------------|
+| **v0 (Kickstarter)** | Commit Gate | Pre-commit hook validates DNA integrity (~60 lines Python) |
+| **v1** | Write Gate | SIFU wrapper intercepts tool calls before file writes |
+| **v2 (if needed)** | Filesystem Gate | OS-level enforcement via FUSE |
+
+**Vision**: Everyone opens SIFU before opening their agentic coding tool.
 
 ## Project Goals
 
-1. Provide a minimal, working “kickitstarter” repo skeleton for the Sifu DNA workflow.
-2. Enforce “DNA integrity” at commit time:
+1. Provide a minimal, working "kickstarter" repo skeleton for the Sifu DNA workflow.
+2. Enforce "DNA integrity" at commit time (v0):
    - Every tracked code file has a matching sidecar `*.dna`.
-   - New `.dna` entries reference existing global IDs in `SIFU.md` (format: `[DNA-###]`).
-   - `SIFU.md` and `*.dna` files are append-only (no `-` deletions in staged diffs).
+   - New `.dna` entries reference existing global IDs in `SIFU.dna` (format: `[DNA-###]`).
+   - `SIFU.dna` and `*.dna` files are append-only (no deletions in staged diffs).
 3. Keep everything plain-text, grep-friendly, and easy for agents to consume.
 4. Ship tests (Python `unittest`) for the validator logic.
 
 ## Project Structure
 
-Planned minimal layout (will evolve, but keep it small):
+Planned minimal layout:
 
-- `SIFU.md`: global DNA registry (shared rationales, IDs like `[DNA-101]`).
-- `src/sifu/`: Python package for the checker + CLI.
-- `.githooks/pre-commit`: versioned hook entrypoint (paired with `git config core.hooksPath .githooks`).
-- `scripts/`: helper scripts (install hooks, project bootstrap).
-- `tests/`: `unittest` coverage for core logic.
-- `docs/`: design notes and decisions (timestamped filenames).
+```
+Sifu/
+├── SIFU.dna              # Global DNA registry (shared rationales, IDs like [DNA-101])
+├── CLAUDE.md             # Agent instructions (this file)
+├── scripts/
+│   └── sifu_check.py     # Pre-commit validator (~60 lines)
+├── .githooks/
+│   └── pre-commit        # Hook that calls validator
+├── tests/                # unittest coverage
+└── docs/
+    └── 2026011220_SIFU_DESIGN.md  # Full design document
+```
+
+Per-file DNA sidecars:
+```
+src/
+├── foo.py                # Code (phenotype, disposable)
+├── foo.py.dna            # DNA (rationale + history, durable)
+```
 
 ## Project Workflow
 
-1. **Register a DNA ID**: append a new entry to `SIFU.md` (`[DNA-###]` + rationale).
-2. **Record file evolution**: append a new entry to `<file>.dna` referencing that `[DNA-###]`.
-3. **Implement/iterate**: write or regenerate the code freely (phenotype is disposable).
-4. **Validate**: run the checker locally (and via pre-commit).
-5. **Commit**: pre-commit enforces integrity + append-only constraints.
+1. **Register a DNA ID**: append a new entry to `SIFU.dna` (`[DNA-###]` + rationale).
+2. **Record decision**: append decision rationale to `<file>.dna` referencing that `[DNA-###]`.
+3. **Implement**: write or regenerate the code freely (phenotype is disposable).
+4. **Record session**: append implementation history to `<file>.dna` (timestamp, agent_id, changes).
+5. **Validate**: run the checker locally (and via pre-commit).
+6. **Commit**: pre-commit enforces integrity + append-only constraints.
 
 ## Project Tools
 
