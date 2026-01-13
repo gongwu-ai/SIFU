@@ -299,9 +299,21 @@ ANTHROPIC_MODEL="glm-4.5-flash"  # 指定模型
 
 **Process Success**: 19/21 = 90% (有输出)
 
-### 验证结果 (Result Success)
+### 关键概念：Process ≠ Result
 
-**重要**: Process ≠ Result！GPT-4o 的 37% 是 Result Success。
+| 指标 | 说明 | 示例 |
+|------|------|------|
+| **Process Success** | 代码跑通，有输出文件 | 生成了 output.csv |
+| **Result Success** | 输出内容正确 | output.csv 内容与 groundtruth 匹配 |
+
+**GPT-4o 官方成绩 37% 是 Result Success，不是 Process Success！**
+
+这意味着：
+- 代码跑通 ≠ 任务完成
+- 必须用 `test_script.py` 验证输出正确性
+- 我们的 90% Process Success 需要降级为 Result Success
+
+### 验证结果 (Result Success)
 
 | 任务 | Process | Result | 说明 |
 |------|---------|--------|------|
