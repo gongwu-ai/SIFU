@@ -17,6 +17,100 @@ From `chat_log.dna` (a conversation about Agentic Coding):
 
 ---
 
+## Target Audience (Clarified)
+
+**This is NOT for human coding.** Git already works great there.
+
+**This IS for:**
+- **Agentic systems** (no human, auto-run for long periods)
+- **Agentic orchestration systems** (human may exist, directing agents)
+
+DNA-first is a **git enhancement layer for agents**, not a replacement for human git workflow.
+
+---
+
+## Naming & Hierarchy (Clarified)
+
+### SIFU.dna (not SIFU.md)
+
+`SIFU.dna` = meta DNA that governs **only** global rule documents.
+
+```
+SIFU.dna                          ← Meta DNA (rules ONLY global rule docs)
+├── CLAUDE.md                     ← Governed by SIFU.dna
+├── AGENTS.md                     ← Governed by SIFU.dna
+└── [other *.md rule docs]        ← Governed by SIFU.dna
+
+src/
+├── foo.py
+├── foo.py.dna                    ← Independent (NOT under SIFU.dna)
+├── bar.py
+└── bar.py.dna                    ← Independent (NOT under SIFU.dna)
+```
+
+**Two separate domains:**
+1. **SIFU.dna** → governs global rule docs only
+2. **\*.dna sidecars** → govern their own code files, independently
+
+No hierarchy between SIFU.dna and code-level DNA files.
+
+---
+
+## SIFU Supervision Model
+
+### 一日为师，终身为师 (Once a master, always a master)
+
+**Inside SIFU supervision:**
+- ALL edits go through SIFU
+- No bypassing DNA logging
+- Everything tracked, no exceptions
+
+**The lock is at SIFU level, not harness level:**
+
+```
+┌─────────────────────────────────────────┐
+│              SIFU (master)              │
+│                                         │
+│   ┌─────────┐  ┌─────────┐  ┌───────┐   │
+│   │ Claude  │  │ Cursor  │  │ Other │   │
+│   │  Code   │  │         │  │ Agent │   │
+│   └────┬────┘  └────┬────┘  └───┬───┘   │
+│        │            │           │       │
+│        └────────────┼───────────┘       │
+│                     ▼                   │
+│              Codebase                   │
+│        (all can touch under SIFU)       │
+└─────────────────────────────────────────┘
+
+✓ OK: Switch harness under same SIFU
+✗ NOT OK: Different SIFU tries to intervene
+```
+
+**Harness = just an agent.** Interchangeable under same SIFU.
+
+**SIFU = the master.** Only one SIFU per codebase. Another SIFU cannot take over.
+
+### Clean Dump (Escape Hatch)
+
+Codebase can be exported without DNA:
+
+```
+SIFU-supervised repo          Fork (clean dump)
+──────────────────────        ─────────────────
+SIFU.dna                  →   (gone)
+CLAUDE.md                 →   (gone or kept as plain doc)
+foo.py.dna                →   (gone)
+foo.py                    →   foo.py (code only)
+```
+
+New system can:
+- Use code freely
+- Start fresh DNA with their own harness
+- 烙印 (brand) their own signatures
+- Maintain their own integrity
+
+---
+
 ## Why Not Just Git?
 
 Git already tracks history of all files including `.dna` files. So why append-only?
@@ -43,58 +137,184 @@ Git already tracks history of all files including `.dna` files. So why append-on
 
 ## Open Operational Questions
 
-### Q1: Triggering - When does DNA update?
+### Q1: Triggering - When is DNA updated?
 
-Current design: Tied to `git commit` via pre-commit hook.
+#### Old framing (human-centric, wrong)
 
-**Problems:**
-- Newbies don't commit frequently - DNA stays stale
-- If auto-triggered, what's the frequency?
-- What event should cause a DNA checkpoint?
+~~Current design: tied to `git commit` via a pre-commit hook.~~
 
-**Possible triggers:**
-- Manual (current): User commits
-- Time-based: Every N minutes of coding
-- Event-based: On file save, test run, etc.
-- Agent-driven: AI decides when to checkpoint
+~~Problem: humans don't commit frequently, so DNA stays stale.~~
 
-**Unresolved**: What is the "clock" of DNA evolution?
+This framing is wrong because **humans aren't the ones coding—agents are.**
+
+#### New framing (agent-centric)
+
+**Trigger = agent lifecycle events:**
+- **EOL (end-of-life)**: session exit, crash, timeout, or handoff back to a human
+- **Context compaction**: agent is about to "forget" (context window is full)
+
+**Who writes the DNA?**
+- A SIFU daemon (a medium-cost model/agent)
+- Like auto-compaction: summarizes meaningful decisions before the agent dies/forgets
+
+#### The gap problem
+
+```
+Timeline:
+─────────────────────────────────────────────────────►
+   │                                              │
+   ▼                                              ▼
+Session start                            EOL/Compaction
+   │                                              │
+	   │  ← Agent acting, making changes →            │
+	   │     (DNA not yet updated)                    │
+   │                                              │
+   └──────────── GAP: untracked ─────────────────►│
+                                                  │
+                                            DNA updated
+```
+
+Session work is not summarized into DNA until EOL/compaction.
+
+#### The orphan code problem? (Resolved: No Such Problem)
+
+**Initial concern**: an agent crashes → code exists without DNA lineage.
+
+**But wait**: DNA (decision) comes before implementation (impl). Always.
+
+```
+Decision (DNA)  →  Impl attempt  →  Audit  →  Final record
+      ↓                ↓              ↓            ↓
+   Written         In progress     Pass/fail   DNA updated
+    FIRST          (risky)                    with status
+```
+
+**Crash scenarios:**
+
+| Crash point | What survives | What's lost | Recovery |
+|-------------|---------------|-------------|----------|
+| After decision, before impl | DNA | Nothing yet | Next agent implements |
+| During impl | DNA | Partial code | Next agent re-implements |
+| After impl, before audit | DNA + code | Audit status | Next agent audits |
+| After audit | DNA + code + status | Nothing | Complete |
+
+**Conclusion**:
+- We can end up with "DNA without phenotype" (decision made, impl lost), not "phenotype without DNA".
+- **The risk is losing implementation work, not losing lineage.**
+- Since code is regenerable from DNA (phenotype from genotype), that loss is acceptable.
+- No orphan-code problem exists (DNA always comes first).
+
+The only real edge case is bypassing SIFU and editing code directly; that violates 一日为师 anyway.
+
+#### The core insight
+
+Once the decision (DNA) is written, the agent's fate is irrelevant:
+
+```
+DNA (decision) written
+         │
+         ▼
+   ┌─────────────────────────────────────┐
+   │  Agent can:                         │
+   │  - Crash                            │
+   │  - Play video games                 │
+   │  - Go to Tesco                      │
+   │  - Whatever                         │
+   │                                     │
+   │  Doesn't matter.                    │
+   └─────────────────────────────────────┘
+         │
+         ▼
+   Someone will come and implement.
+   (same agent, different agent, next week, next year)
+```
+
+**DNA is durable. The agent is ephemeral. Implementation will happen eventually.**
+
+This is "phenotype disposable, genotype durable" in action.
+
+#### Simplification thought
+
+Maybe DNA doesn't need to track **every** change. It tracks **decisions**.
+
+```
+Agent session:
+- Edit 1: fix typo          ← not worth DNA
+- Edit 2: fix typo          ← not worth DNA
+- Edit 3: refactor auth     ← DECISION, worth DNA
+- Edit 4: fix typo          ← not worth DNA
+```
+
+At EOL/compaction, the SIFU daemon summarizes meaningful decisions and ignores noise.
+
+**Status**: Resolved.
+- Trigger = agent EOL / context compaction
+- Writer = SIFU daemon (medium-cost model)
+- Orphan code = impossible (DNA comes first)
+- Risk = losing implementation work, not lineage (acceptable; code is regenerable from DNA)
 
 ---
 
 ### Q2: Compression - How to prevent bloat?
+
+#### Initial Concern
 
 Append-only means files grow forever.
 
 ```
 Day 1:    [DNA-001] Initial design
 Day 30:   [DNA-001]...[DNA-050] (50 entries)
-Day 365:  [DNA-001]...[DNA-500] (500 entries - unreadable)
+Day 365:  [DNA-001]...[DNA-500] (500 entries - unreadable?)
 ```
 
-**Biological DNA has:**
-- Selection pressure (bad mutations die)
-- Generations (old organisms die)
+#### Key Insight: DNA is Already Compressed
 
-**This system has no death mechanism.**
+DNA entries are **LLM-compressed summaries**, not verbose logs.
 
-**Possible compression models:**
+Each decision = 10-50 words, descriptive, not every code change logged.
+
+**Revised bloat calculation:**
+
+```
+Day 1:     1 entry × 50 words = 50 words
+Day 30:    50 entries × 50 words = 2,500 words (~10KB)
+Day 365:   500 entries × 50 words = 25,000 words (~100KB)
+Year 5:    5,000 entries × 50 words = 250,000 words (~1MB)
+```
+
+**1MB after 5 years of decisions.** That's nothing.
+
+#### Is Bloat Even a Problem?
+
+| Concern | Reality |
+|---------|---------|
+| File too big to read | 1MB is trivial for agents |
+| Too many entries to scan | Agents handle long context fine |
+| Human readability | Humans rarely read raw DNA anyway |
+
+#### Possible Future Compression (If Needed)
+
+If bloat ever becomes a problem:
 1. **Summarization**: Periodically compress old entries into summary
 2. **Generations**: Archive old DNA, start fresh generation
-3. **Hierarchy**: SIFU.md (high-level) -> module.dna (mid) -> file.dna (detail)
+3. **Hierarchy**: SIFU.dna (high-level) → module.dna (mid) → file.dna (detail)
 4. **Relevance decay**: Old entries auto-collapse, expand on demand
 
-**Unresolved**: What's the compression/archival model?
+But these are premature optimizations for now.
+
+**Status**: Resolved. DNA entries are already LLM-compressed (10-50 words). Bloat is a non-problem.
 
 ---
 
 ### Q3: Consistency - How to sync global and local?
 
+#### Initial Concern
+
 ```
-SIFU.md (global)              file.py.dna (local)
-----------------              ------------------
-[DNA-001] Use Redis       ->  References [DNA-001]
-[DNA-002] DEPRECATED          Still references [DNA-001] <- STALE
+SIFU.dna (global)             file.py.dna (local)
+─────────────────             ──────────────────
+[DNA-001] Use Redis       →   References [DNA-001]
+[DNA-002] DEPRECATED          Still references [DNA-001] ← STALE?
           Use in-memory
 ```
 
@@ -104,54 +324,105 @@ SIFU.md (global)              file.py.dna (local)
 - Who/what resolves conflicts?
 - Is there a propagation mechanism?
 
-**Unresolved**: What's the consistency model between SIFU.md and *.dna files?
+#### Key Insight: No Sync Problem Exists
+
+**The model:**
+
+1. **SIFU.dna** = blueprint + decision log
+   - Decision logged first (e.g., "update CLAUDE.md with bird's eye view")
+   - Actual content depends on agent's sampling/implementation
+
+2. **Local can read global** - local .dna files can reference SIFU.dna decisions
+
+3. **Local can VIOLATE global** - as long as violation is logged to its own .dna
+   - Local mutation is allowed if recorded
+   - No strict enforcement, just logging
+
+4. **Agents forget rules sometimes** - we don't care because:
+   - Decision is always logged
+   - If agent forgets and does something different, that new decision gets logged too
+   - History preserved either way
+
+#### Consistency Model = Eventual Consistency Through Logging
+
+```
+SIFU.dna says: "Use Redis"
+         │
+         ▼
+Local agent reads... or forgets... or disagrees
+         │
+         ▼
+Local does something different? Fine.
+         │
+         ▼
+As long as local.dna logs: "Decided to use Postgres instead because X"
+```
+
+**No auto-sync. No conflict resolution. Just log everything.**
+
+The DNA log is the source of truth, not the current state.
+
+**Status**: Resolved.
+- No sync mechanism needed
+- Local can diverge from global
+- Only requirement: divergence must be logged to local .dna
 
 ---
 
 ### Q4: What if DNA itself is wrong?
 
+#### Initial Concern
+
 The system assumes humans write good intent. But:
 - Humans write garbage rationales too
 - Append-only preserves garbage forever (only DEPRECATED, not deleted)
 
-**Mitigation (from chat_log.dna line 328):**
+**From chat_log.dna line 328:**
 > "Agent must respect rationale UNLESS it can provide MORE SUFFICIENT rationale to override"
 
-So: Override is allowed if you have better reasoning. Not blind accumulation.
+#### Key Insight: Wrong is Okay
 
-**Partially resolved**: Override mechanism exists, but who judges "more sufficient"?
+| Principle | Explanation |
+|-----------|-------------|
+| Wrong is okay | DNA can be wrong, that's fine |
+| No deletion | Can't delete DNA entries, ever |
+| Always incremental | Modifications are additive only |
+| Deprecate + new | Mark old as DEPRECATED, add new decision |
+
+```
+[DNA-001] Use Redis for caching
+          ... time passes, turns out it was wrong ...
+[DNA-002] DEPRECATED [DNA-001]: Redis doesn't scale for our use case
+          New decision: Use in-memory LRU cache instead
+```
+
+#### No Judge Needed
+
+The question "who judges more sufficient?" dissolves:
+- Anyone can deprecate and add new DNA
+- The log shows evolution of thinking
+- No central authority needed
+- Just log everything, let history show the reasoning
+
+**Status**: Resolved.
+- Wrong DNA is allowed (stays in history)
+- No deletion, only DEPRECATED + new
+- No central authority judging "more sufficient"
+- The log itself is the judge (transparent reasoning history)
 
 ---
 
-## Naming Decision
+## Summary Table
 
-User preference: `SIFU.md` instead of `SIFU_DNA.md`
-- Simpler
-- DNA concept is in content, not filename
-- "Sifu" (master) is the project identity
-
----
-
-## Minimal Kickstarter Scope
-
-Given the open questions, what can we actually build now?
-
-**Can enforce (mechanical):**
-- Every code file needs a `.dna` sidecar
-- `.dna` entries must reference `[DNA-xxx]` from `SIFU.md`
-- No line deletions in `SIFU.md` or `.dna` files
-
-**Cannot solve yet (needs design):**
-- Trigger frequency
-- Compression model
-- Global-local consistency
-- Conflict resolution
+| Question | Status | Key Insight |
+|----------|--------|-------------|
+| Q1: Trigger | **Resolved** | EOL/compact; DNA first, no orphan code; losing impl is OK |
+| Q2: Compression | **Resolved** | Already LLM-compressed (10-50 words); 1MB after 5 years is nothing |
+| Q3: Consistency | **Resolved** | No sync needed; local can violate global if logged; eventual consistency |
+| Q4: Wrong DNA | **Resolved** | Wrong is OK; no deletion; DEPRECATED + new; log is the judge |
 
 ---
 
 ## Next Steps
 
-Pending user decision on:
-1. Whether to proceed with minimal kickstarter (enforce basic rules only)
-2. Or design answers to operational questions first
-3. Or simplify further (e.g., SIFU.md only, no per-file .dna sidecars)
+All questions resolved (Q1-Q4). Ready for implementation.
