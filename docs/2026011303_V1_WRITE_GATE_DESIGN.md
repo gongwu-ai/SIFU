@@ -5,6 +5,17 @@
 
 ---
 
+## Why v1 is the First Real Version
+
+v0 (Commit Gate) is a POC only. It cannot enforce DNA-first because:
+- Agent can just not commit
+- No way to intercept writes
+- No lifecycle hooks
+
+**SIFU requires harness integration.** v1 uses CC hooks to actually enforce rules.
+
+---
+
 ## Goal
 
 Enforce DNA-first at **write time**, not just commit time.
@@ -240,10 +251,9 @@ SIFU Daemon is valuable but adds complexity. v1.0 focuses on Write Gate enforcem
 ### v1.0: Write Gate
 - [ ] Create `.claude/hooks/dna_enforcer.py`
 - [ ] Create `.claude/settings.json` with hook config
-- [ ] Update `sifu_init.sh` to install hooks
 - [ ] Test: write without DNA → blocked
 - [ ] Test: write with DNA → allowed
-- [ ] Document in README
+- [ ] Document usage in CLAUDE.md
 
 ### v1.1: Write Threshold
 - [ ] Add threshold tracking to dna_enforcer.py
