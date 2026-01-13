@@ -31,3 +31,6 @@
 - [DNA-014] CLAUDE.md is SIFU.dna's phenotype: SIFU projects must have CLAUDE.md as the agent instruction file.
 - [DNA-015] Testbed 选型: InterCode (最轻 ~3GB) 或 GitTaskBench (决策密度高)，跑几个 task 做 demo。
 - [DNA-016] SIFU 验证策略: Demo tasks + Dogfood + 真实项目，多管齐下。
+- [DNA-017] NeuroKit ECG analysis testbed: Use NeuroKit library to detect R-wave and P-wave peaks from ECG signals for GitTaskBench NeuroKit_02 task.
+- [DNA-018] Eparse_01 extraction workflow: Extract tables from Excel files using Eparse library, save extracted data to output Excel files preserving original filenames.
+- [DNA-019] Scrapy_03 quotes scraping: Scrape quotes from quotes.toscrape.com/tag/humor/ using Scrapy library and output results to XML format matching gt.xml structure (quotes root with quote children containing text, author, tags elements).
