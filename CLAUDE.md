@@ -147,33 +147,41 @@ else:
 
 ### 文件结构
 
-每个 `.dna` 文件包含两层：
-
-**1. Decision Rationale** (高价值，必须保护)
-- 为什么这个文件存在
-- 设计决策和约束
-- 引用 `SIFU.dna` 中的 `[DNA-###]` ID
-
-**2. Implementation History** (低价值，丢失可重建)
-- `Session`: 时间戳 / agent-id
-- `Refs`: 引用的 DNA ID
-- `Changes`: 变更描述 (10-50 words)
-
-### 示例
-
 ```markdown
 # foo.py.dna
 
-## Decision Rationale
+## Decision Rationale          ← 必须，高价值
 
-- [DNA-001] This file handles user authentication.
-- [DNA-005] Chose JWT for stateless scaling.
+- [DNA-001] Description...
 
-## Implementation History
+## Implementation History      ← 必须，低价值，格式灵活
 
-### Session: 2026-01-13T14:30:00 / agent-claude-abc123
-- Refs: [DNA-005]
-- Changes: Added JWT validation in check_token()
+### Session: timestamp / agent ← 建议格式
+- Refs: [DNA-xxx]
+- Changes: 描述
+
+## Misc                        ← 可选，未来扩展
+```
+
+| Section | 必须？ | 说明 |
+|---------|--------|------|
+| `## Decision Rationale` | ✅ | 高价值，v1.0 强制检查 |
+| `## Implementation History` | ✅ | 低价值，格式灵活 |
+| `## Misc` | ❌ | 可选，未来扩展用 |
+
+### 提取 Rationale (默认实现)
+
+Agent 可直接用：
+```bash
+sed -n '/^## Decision Rationale/,/^## /p' foo.py.dna | sed '$d'
+```
+
+或在代码中：
+```typescript
+function extractRationale(dnaContent: string): string {
+  const match = dnaContent.match(/## Decision Rationale\n([\s\S]*?)(?=\n## |$)/);
+  return match ? match[1].trim() : '';
+}
 ```
 
 ### SIFU.dna 示例
