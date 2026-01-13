@@ -49,6 +49,48 @@ function needsDna(filepath: string): boolean {
   return true;
 }
 
+interface DnaValidation {
+  valid: boolean;
+  error?: string;
+}
+
+/**
+ * Validates .dna file structure per CLAUDE.md spec:
+ * - Must have "## Decision Rationale" section
+ * - Must have "## Implementation History" section
+ * - Decision Rationale must contain at least one [DNA-###]
+ */
+function validateDnaStructure(dnaPath: string): DnaValidation {
+  try {
+    const content = readFileSync(dnaPath, "utf-8");
+
+    // Check required sections
+    if (!/^## Decision Rationale/m.test(content)) {
+      return { valid: false, error: "Missing '## Decision Rationale' section" };
+    }
+    if (!/^## Implementation History/m.test(content)) {
+      return { valid: false, error: "Missing '## Implementation History' section" };
+    }
+
+    // Extract rationale section and check for at least one DNA ID
+    const rationaleMatch = content.match(
+      /## Decision Rationale\s*([\s\S]*?)(?=\n## |$)/
+    );
+    const rationaleSection = rationaleMatch?.[1]?.trim() || "";
+
+    if (!/\[DNA-\d+\]/.test(rationaleSection)) {
+      return {
+        valid: false,
+        error: "Decision Rationale must have at least one [DNA-###]",
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: `Cannot read .dna file: ${error}` };
+  }
+}
+
 function findProjectRoot(startDir: string = process.cwd()): string {
   let dir = startDir;
   while (dir !== "/") {
@@ -101,17 +143,26 @@ async function main(): Promise<void> {
       process.exit(0);
     }
 
-    // Check if DNA exists
+    // Check if DNA exists and is valid
     const dnaPath = `${filePath}.dna`;
-    if (existsSync(dnaPath)) {
-      process.exit(0);
+    if (!existsSync(dnaPath)) {
+      console.error(`SIFU BLOCKED: ${relativePath}`);
+      console.error(`DNA-first violation: ${relativePath}.dna does not exist`);
+      console.error(`Create the .dna file first, then write the code.`);
+      process.exit(2);
     }
 
-    // Block - DNA required but missing
-    console.error(`SIFU BLOCKED: ${relativePath}`);
-    console.error(`DNA-first violation: ${relativePath}.dna does not exist`);
-    console.error(`Create the .dna file first, then write the code.`);
-    process.exit(2);
+    // Validate DNA structure (空 .dna 是漏洞)
+    const validation = validateDnaStructure(dnaPath);
+    if (!validation.valid) {
+      console.error(`SIFU BLOCKED: ${relativePath}`);
+      console.error(`Invalid .dna structure: ${validation.error}`);
+      console.error(`Fix the .dna file before writing code.`);
+      process.exit(2);
+    }
+
+    // DNA exists and is valid - allow
+    process.exit(0);
   } catch (error) {
     // On error, allow the tool to proceed (fail open)
     console.error(`SIFU hook error: ${error}`);
