@@ -259,20 +259,20 @@ SIFU Daemon is valuable but adds complexity. v1.0 focuses on Write Gate enforcem
 - [x] Document usage in CLAUDE.md
 
 ### v1.1: Write Threshold (Warning Only)
-- [ ] Track uncommitted line count (project-wide)
-- [ ] Configurable threshold (default 1000 lines)
-- [ ] On threshold hit → stderr warning, no block
-- [ ] Agent decides whether to commit
+- [x] Track uncommitted line count (project-wide)
+- [x] Configurable threshold (default 1000 lines)
+- [x] On threshold hit → stderr warning, no block
+- [x] Agent decides whether to commit
 
 ### v1.2: Smart Rationale Reading
-- [ ] 选型决定 (A: agent grep / B: 工具 / C: 分离文件)
-- [ ] 实现只读 Rationale 区域
-- [ ] 避免上下文爆炸
+- [x] 选型决定 (B: 工具 - parseDna/extractRationale)
+- [x] 实现只读 Rationale 区域
+- [x] 避免上下文爆炸
 
 ### v1.3: Incremental Rationale
 - [x] 判断公式已定义 (future_agent.会问("为什么？"))
 - [x] 宁滥勿缺原则已确定
-- [ ] 文档化到 agent 指南
+- [x] 文档化到 agent 指南 (CLAUDE.md)
 
 ### Testbed
 - [ ] 选择任务类型 (AI-IMO / ML bench / Paper bench / 其他)
