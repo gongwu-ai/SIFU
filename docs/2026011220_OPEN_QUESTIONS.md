@@ -480,6 +480,141 @@ Given this evolution, possible paths forward:
 
 ---
 
+## DNA Content Structure
+
+### What goes inside a DNA file?
+
+For now, two core components:
+
+**1. Decision Rationale (决策理由)**
+- Why this file exists
+- Why certain design choices were made
+- References to global DNA IDs from SIFU.dna
+
+**2. Implementation History (实现历史)**
+- Per agent lifetime: what was changed during that session
+- Before commit, if agent modified the corresponding code, log the changes here
+- Tracks the evolution of the phenotype over time
+
+### Example Structure
+
+```
+foo.py.dna
+──────────
+
+## Decision Rationale
+
+- [DNA-001] This file handles user authentication.
+- [DNA-005] Chose JWT over sessions for stateless scaling.
+- [DNA-012] DEPRECATED [DNA-005]: Switched to session-based auth for security audit compliance.
+
+## Implementation History
+
+### Agent session: 2026-01-13-agent-abc
+- Added JWT validation in `check_token()` (lines 20-50)
+- Refactored error handling to return structured errors
+
+### Agent session: 2026-01-14-agent-xyz
+- Fixed edge case: empty token string now returns 401
+- Added rate limiting per [DNA-018]
+
+### Agent session: 2026-01-15-agent-abc
+- Implemented session-based auth per [DNA-012]
+- Removed old JWT code (phenotype regenerated from new rationale)
+```
+
+### Separation Principle
+
+| File | Content |
+|------|---------|
+| `foo.py` | Pure phenotype (code only, disposable) |
+| `foo.py.dna` | Rationale + history (the "why" and "what changed") |
+
+Reference inspiration: `icml_position_paper/docs/drafts/introduction_v2_5.md` which combines 骨架/血肉 (content) with 写作思路/Rationale and 改动记录 (history).
+
+DNA files may contain more in the future, but these two components are the foundation.
+
+---
+
+## 卡住机制 (Gating/Blocking Mechanism)
+
+"卡住" = 在哪个边界强制执行 DNA-first 规则
+
+### 三种卡住选项
+
+| 选项 | 卡在哪里 | 什么时候拦截 | 实现方式 |
+|------|----------|--------------|----------|
+| **Commit Gate** | Git 提交时 | `git commit` 被触发时 | Pre-commit hook (~60行 Python) |
+| **Write Gate** | 文件写入前 | Agent 调用 Edit/Write 工具时 | SIFU wrapper 拦截工具调用 |
+| **Filesystem Gate** | 操作系统层 | 任何进程写文件时 | FUSE 文件系统层拦截 |
+
+### 详细解释
+
+**1. Commit Gate (提交时卡住)**
+```
+Agent 工作中...
+  ↓
+修改 foo.py (没人管)
+  ↓
+git commit
+  ↓
+Pre-commit hook 检查:
+  - foo.py.dna 存在吗？
+  - foo.py.dna 有新增记录吗？
+  - 记录引用了 SIFU.dna 的 ID 吗？
+  ↓
+不符合 → 拒绝提交
+符合 → 允许提交
+```
+
+**优点**: 简单，用现有 Git 机制
+**缺点**: Agent 可以绕过（直接写文件不 commit）
+
+**2. Write Gate (写入时卡住)**
+```
+Agent 想修改 foo.py
+  ↓
+调用 Edit/Write 工具
+  ↓
+SIFU wrapper 拦截:
+  - foo.py.dna 存在吗？
+  - 本次 session 有记录吗？
+  ↓
+不符合 → 工具调用被拒绝
+符合 → 允许写入
+```
+
+**优点**: 更严格，Agent 无法绕过
+**缺点**: 需要改 Agent harness（如 Claude Code 的工具层）
+
+**3. Filesystem Gate (文件系统层卡住)**
+```
+任何进程想写 foo.py
+  ↓
+OS 文件系统层拦截
+  ↓
+FUSE/内核模块检查 DNA 规则
+  ↓
+不符合 → Permission denied
+符合 → 允许写入
+```
+
+**优点**: 最严格，任何东西都无法绕过
+**缺点**: 复杂，跨平台难，性能开销
+
+### 推荐路径
+
+对于 kickstarter v0:
+- **Commit Gate** 最简单，可以先用这个
+- 后期如果需要更严格，再升级到 Write Gate
+
+---
+
 ## Next Steps
 
-All questions resolved (Q1-Q4). Design has evolved significantly from original initiative. Ready for implementation decision.
+All questions resolved (Q1-Q4). Design has evolved significantly from original initiative.
+
+Pending decisions:
+1. DNA content structure defined (rationale + history)
+2. 卡住机制待定 (commit gate vs write gate vs filesystem gate)
+3. Implementation path 待定 (hook / daemon / both)
