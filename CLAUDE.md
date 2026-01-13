@@ -150,37 +150,66 @@ else:
 ```markdown
 # foo.py.dna
 
-## Decision Rationale          ← 必须，高价值
+## Decision Rationale
 
 - [DNA-001] Description...
 
-## Implementation History      ← 必须，低价值，格式灵活
+## Implementation History
 
-### Session: timestamp / agent ← 建议格式
-- Refs: [DNA-xxx]
-- Changes: 描述
+### Session: 2026-01-13T14:30:00 / agent-id
+- Refs: [DNA-001]
+- Changes: What was done (10-50 words)
 
-## Misc                        ← 可选，未来扩展
+## Misc
+
+(可选内容)
 ```
 
-| Section | 必须？ | 说明 |
-|---------|--------|------|
-| `## Decision Rationale` | ✅ | 高价值，v1.0 强制检查 |
-| `## Implementation History` | ✅ | 低价值，格式灵活 |
-| `## Misc` | ❌ | 可选，未来扩展用 |
+| Section | 必须？ | 可空？ | 说明 |
+|---------|--------|--------|------|
+| `## Decision Rationale` | ✅ | ❌ | 至少一条 `[DNA-###]` |
+| `## Implementation History` | ✅ | ✅ | 可以为空 |
+| `## Misc` | ❌ | ✅ | 可选 |
 
-### 提取 Rationale (默认实现)
+### History 推荐格式
 
-Agent 可直接用：
-```bash
-sed -n '/^## Decision Rationale/,/^## /p' foo.py.dna | sed '$d'
+```markdown
+### Session: {ISO8601} / {agent-id}
+- Refs: [DNA-xxx], [DNA-yyy]
+- Changes: 描述 (10-50 words)
 ```
 
-或在代码中：
+### Parser (确保结构完整)
+
 ```typescript
-function extractRationale(dnaContent: string): string {
-  const match = dnaContent.match(/## Decision Rationale\n([\s\S]*?)(?=\n## |$)/);
-  return match ? match[1].trim() : '';
+interface DnaStructure {
+  rationale: string;
+  history: string;
+  misc?: string;
+}
+
+function parseDna(content: string): DnaStructure | Error {
+  const hasRationale = /^## Decision Rationale/m.test(content);
+  const hasHistory = /^## Implementation History/m.test(content);
+
+  if (!hasRationale) return new Error('Missing ## Decision Rationale');
+  if (!hasHistory) return new Error('Missing ## Implementation History');
+
+  const rationale = content.match(/## Decision Rationale\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() || '';
+  const history = content.match(/## Implementation History\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() || '';
+  const misc = content.match(/## Misc\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim();
+
+  if (!rationale || !/\[DNA-\d+\]/.test(rationale)) {
+    return new Error('Decision Rationale must have at least one [DNA-###]');
+  }
+
+  return { rationale, history, misc };
+}
+
+function extractRationale(content: string): string {
+  const parsed = parseDna(content);
+  if (parsed instanceof Error) throw parsed;
+  return parsed.rationale;
 }
 ```
 
