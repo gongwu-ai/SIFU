@@ -10,8 +10,8 @@
  */
 
 import { createInterface } from "node:readline";
-import { existsSync } from "node:fs";
-import { resolve, relative, dirname } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve, relative } from "node:path";
 
 // Inline patterns to avoid import complexity in hook context
 const EXEMPT_PATTERNS: RegExp[] = [

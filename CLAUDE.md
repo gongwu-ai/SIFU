@@ -119,6 +119,9 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 > **"0号 DNA 不需要"**
 > 文件存在的原因从其 rationale 涌现，不需要显式 meta 声明。Purpose = emergent property.
 
+> **"空 .dna 是漏洞"**
+> Hook 必须验证结构完整性，不只是文件存在。空文件 bypass DNA-first 原则。额外 ~1ms 可忽略。
+
 ### Rationale 判断公式
 
 ```python
