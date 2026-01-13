@@ -139,9 +139,9 @@ else:
 | 元素 | Markdown 语法 | 用途 |
 |------|---------------|------|
 | 分组 | `## Section` | 分隔 Rationale / History |
-| DNA ID | `**[DNA-###]**` | 强调决策 ID |
+| DNA ID | `[DNA-###]` | 决策 ID（无需加粗）|
 | 列表 | `- item` | 条目 |
-| DEPRECATED | `~~[DNA-###]~~` | 标记废弃 |
+| DEPRECATED | `~~[DNA-###]~~ DEPRECATED:` | 删除线 + 显式关键词 |
 | 说明 | `> blockquote` | 备注信息 |
 | 会话 | `### Session: ...` | 实现历史条目 |
 
@@ -166,18 +166,14 @@ else:
 
 ## Decision Rationale
 
-- **[DNA-001]** This file handles user authentication.
-- **[DNA-005]** Chose JWT for stateless scaling.
+- [DNA-001] This file handles user authentication.
+- [DNA-005] Chose JWT for stateless scaling.
 
 ## Implementation History
 
 ### Session: 2026-01-13T14:30:00 / agent-claude-abc123
 - Refs: [DNA-005]
 - Changes: Added JWT validation in check_token()
-
-### Session: 2026-01-14T10:00:00 / agent-claude-xyz789
-- Refs: [DNA-001]
-- Changes: Added rate limiting for login attempts
 ```
 
 ### SIFU.dna 示例
@@ -187,9 +183,9 @@ else:
 
 ## Core Principles
 
-- **[DNA-001]** DNA-first development: decision before implementation.
-- **[DNA-002]** Phenotype disposable: code can be regenerated from DNA.
-- ~~**[DNA-003]**~~ DEPRECATED: Old principle, replaced by [DNA-010].
+- [DNA-001] DNA-first development: decision before implementation.
+- [DNA-002] Phenotype disposable: code can be regenerated from DNA.
+- ~~[DNA-003]~~ DEPRECATED: Old principle, replaced by [DNA-010].
 ```
 
 ## DNA Validation Rules (v0)
