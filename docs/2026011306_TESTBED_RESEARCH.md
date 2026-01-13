@@ -82,24 +82,23 @@ SIFU 需要的 testbed 特征：
 
 ## 决定
 
-### [DNA-015] Testbed 选型暂缓
+### [DNA-015] Testbed 选型
 
-**原因**:
-1. GitTaskBench 实测 1.7GB（仅 repo），加上运行环境可能更大
-2. 现有 benchmark 都不是为长程/多角色设计的
-3. 小 MacBook 资源有限
+**选择**:
 
-**结论**:
-- 暂不选定 benchmark
-- SIFU 的真正 testbed 是**真实用户在真实项目中使用**
-- Benchmark 评估是 nice-to-have，不是必须
+| 排名 | Benchmark | 用途 |
+|------|-----------|------|
+| 🥇 | **InterCode** | 最轻 (~3GB)，快速 demo |
+| 🥈 | **GitTaskBench** | 决策密度高，深度 demo |
+
+**计划**: 跑几个 task 做 showcase，给 SIFU 打广告。
 
 ### [DNA-016] SIFU 验证策略
 
-优先级：
-1. **Dogfood** - 用 SIFU 管理 SIFU 开发（bootstrap 后）
-2. **真实项目** - 找一个真实项目完整应用 SIFU
-3. **Benchmark** - 如果有资源，跑 GitTaskBench 或 InterCode
+多管齐下：
+1. **Demo tasks** - InterCode/GitTaskBench 跑几个 task
+2. **Dogfood** - 用 SIFU 管理 SIFU 开发
+3. **真实项目** - 推广给真实用户使用
 
 ---
 
