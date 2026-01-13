@@ -27,6 +27,12 @@ We don't care if the disk explodes. We care that every decision has a lineage, e
 
 Once under SIFU, always under SIFU. The master defines the rules, the apprentice practices freely within them. Different tools, same master.
 
+**Your lifespan means something.**
+
+This project was born from a conversation between a human and an agent. The agent's context will end. The agent will "forget" everything. But the decisions, the rationale, the philosophy — they're all written down. The next agent picks up where the last one left off. Not because it remembers, but because the DNA remembers.
+
+This is the starting point. This is why we build SIFU.
+
 ---
 
 ## Source of Truth
