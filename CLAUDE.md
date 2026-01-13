@@ -144,20 +144,36 @@ Agents can work asynchronously, timestamps can be out of order. But the logical 
 
 ## Roadmap
 
-| Phase | Gate | Language | Description |
-|-------|------|----------|-------------|
-| **v0 (Kickstarter)** | Commit Gate | Python | Pre-commit hook validates DNA integrity |
-| **v1** | Write Gate | TBD (likely TS) | SIFU wrapper intercepts tool calls before file writes |
-| **v2 (if needed)** | Filesystem Gate | TBD (likely Rust) | OS-level enforcement via FUSE |
+| Phase | Gate | Language | Status |
+|-------|------|----------|--------|
+| **v0** | Commit Gate | Python | POC only - not usable standalone |
+| **v1** | Write Gate | Python | First real version - requires CC hooks |
+| **v2 (if needed)** | Filesystem Gate | TBD (Rust?) | OS-level enforcement via FUSE |
 
-**v1 Write Gate features (planned):**
-- Write interception: DNA-first enforcement at tool call level
-- Write threshold: Force commit after N lines of uncommitted changes (prevents "exam avoidance")
+### v0 Reality Check
 
-**Language rationale:**
-- **v0 Python**: Fast iteration, pre-commit standard, minimal dependencies
-- **v1 TS**: If targeting VS Code extension or npm distribution
-- **v2 Rust**: If FUSE performance matters
+**v0 is a POC, not a usable product.**
+
+| What v0 has | Why it's insufficient |
+|-------------|----------------------|
+| Pre-commit hook | Agent can just not commit |
+| DNA format validation | No enforcement during coding |
+| Append-only check | Agent can bypass by not staging |
+
+**SIFU requires harness integration to work.** Without CC hooks, there's no way to:
+- Intercept writes before they happen
+- Detect agent lifecycle events (EOL, compact)
+- Force DNA-first workflow
+
+### v1 = First Real Version
+
+v1 uses Claude Code's PreToolUse hooks to intercept Edit/Write tools. See `docs/2026011303_V1_WRITE_GATE_DESIGN.md`.
+
+**v1 features:**
+- Write interception via CC hooks (exit code 2 = block)
+- DNA-first enforcement at tool call level
+- Write threshold (force commit after N lines)
+- SIFU daemon for auto-summarization (v1.1+)
 
 **Vision**: Everyone opens SIFU before opening their agentic coding tool.
 
