@@ -4,10 +4,10 @@
  * Core logic for DNA-first enforcement at write time.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { needsDna } from "./patterns.js";
-import type { CheckResult, HookInput } from "./types.js";
+import type { CheckResult, HookInput, DnaStructure, DnaValidation } from "./types.js";
 
 /**
  * Get the project root directory.
@@ -76,4 +76,93 @@ export function processHookInput(input: HookInput): CheckResult {
 
   const projectRoot = findProjectRoot();
   return checkDnaExists(filePath, projectRoot);
+}
+
+/**
+ * Parse and validate .dna file structure.
+ * v1.2 Smart Rationale Reading - validates structure and extracts sections.
+ *
+ * Required sections:
+ * - ## Decision Rationale (must have at least one [DNA-###])
+ * - ## Implementation History (can be empty)
+ *
+ * @param content - Raw content of .dna file
+ * @returns DnaValidation with parsed structure or error
+ */
+export function parseDna(content: string): DnaValidation {
+  const hasRationale = /^## Decision Rationale/m.test(content);
+  const hasHistory = /^## Implementation History/m.test(content);
+
+  if (!hasRationale) {
+    return { valid: false, error: "Missing '## Decision Rationale' section" };
+  }
+  if (!hasHistory) {
+    return { valid: false, error: "Missing '## Implementation History' section" };
+  }
+
+  // Extract sections
+  const rationaleMatch = content.match(
+    /## Decision Rationale\s*([\s\S]*?)(?=\n## |$)/
+  );
+  const historyMatch = content.match(
+    /## Implementation History\s*([\s\S]*?)(?=\n## |$)/
+  );
+  const miscMatch = content.match(/## Misc\s*([\s\S]*?)(?=\n## |$)/);
+
+  const rationale = rationaleMatch?.[1]?.trim() || "";
+  const history = historyMatch?.[1]?.trim() || "";
+  const misc = miscMatch?.[1]?.trim();
+
+  // Validate rationale has at least one DNA ID
+  if (!/\[DNA-\d+\]/.test(rationale)) {
+    return {
+      valid: false,
+      error: "Decision Rationale must have at least one [DNA-###]",
+    };
+  }
+
+  return {
+    valid: true,
+    structure: { rationale, history, misc },
+  };
+}
+
+/**
+ * Extract only the Decision Rationale section from a .dna file.
+ * v1.2 Smart Rationale Reading - avoids context explosion.
+ *
+ * Use this instead of reading the entire .dna file when you only
+ * need to check existing decisions.
+ *
+ * @param dnaPath - Path to .dna file
+ * @returns Rationale content or error message
+ */
+export function extractRationale(dnaPath: string): string {
+  try {
+    const content = readFileSync(dnaPath, "utf-8");
+    const validation = parseDna(content);
+
+    if (!validation.valid) {
+      return `[ERROR: ${validation.error}]`;
+    }
+
+    return validation.structure!.rationale;
+  } catch (error) {
+    return `[ERROR: Cannot read ${dnaPath}: ${error}]`;
+  }
+}
+
+/**
+ * Validate .dna file structure from path.
+ *
+ * @param dnaPath - Path to .dna file
+ * @returns DnaValidation
+ */
+export function validateDnaFile(dnaPath: string): DnaValidation {
+  try {
+    const content = readFileSync(dnaPath, "utf-8");
+    return parseDna(content);
+  } catch (error) {
+    return { valid: false, error: `Cannot read file: ${error}` };
+  }
 }

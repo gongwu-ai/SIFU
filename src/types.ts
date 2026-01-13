@@ -36,3 +36,21 @@ export const EXIT_CODES = {
   ALLOW: 0,
   BLOCK: 2,
 } as const;
+
+/**
+ * Parsed structure of a .dna file.
+ */
+export interface DnaStructure {
+  rationale: string;
+  history: string;
+  misc?: string;
+}
+
+/**
+ * Result of DNA structure validation.
+ */
+export interface DnaValidation {
+  valid: boolean;
+  error?: string;
+  structure?: DnaStructure;
+}
