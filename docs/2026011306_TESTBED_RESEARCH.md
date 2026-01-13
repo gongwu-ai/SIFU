@@ -313,16 +313,51 @@ ANTHROPIC_MODEL="glm-4.5-flash"  # 指定模型
 - 必须用 `test_script.py` 验证输出正确性
 - 我们的 90% Process Success 需要降级为 Result Success
 
-### 验证结果 (Result Success)
+### 验证结果 (Result Success) - 完整
+
+**验证时间**: 2026-01-13 10:20
 
 | 任务 | Process | Result | 说明 |
 |------|---------|--------|------|
-| NeuroKit_01 | ✅ | ✅ | 100% 准确 |
+| Eparse_01 | ✅ | ❌ | 内容相似度 38.08% < 75% |
+| Eparse_02 | ❌ | ❌ | 输出格式错误，解析失败 |
+| Eparse_03 | ✅ | ✅ | 相似度 100% |
+| NeuroKit_01 | ✅ | ✅ | 100% 准确，3/3 列匹配 |
 | NeuroKit_02 | ✅ | ❌ | R/P peaks 数量不对 |
-| NeuroKit_03 | ✅ | ? | 待验证 |
-| PDFPlumber_01 | ✅ | ? | 待验证 |
-| PDFPlumber_02 | ✅ | ? | 待验证 |
-| Stegano_01-03 | ✅ | ? | 待验证 |
+| NeuroKit_03 | ✅ | ❌ | 缺少 Mean_Respiratory_Rate 列 |
+| PDFPlumber_01 | ✅ | ✅ | 通过 |
+| PDFPlumber_02 | ✅ | ❌ | 列名/顺序不匹配 |
+| PDFPlumber_03 | ✅ | ✅ | P/R/F1 = 100% |
+| PyPDF2_01 | ✅ | ✅ | 文本准确度 99.81% |
+| PyPDF2_03 | ❌ | ❌ | 输出文件异常 |
+| Stegano_02 | ✅ | ❌ | 提取内容不匹配 |
+| Trafilatura_01 | ✅ | ❌ | F1 0.76 < 0.9 阈值 |
+| Scrapy_02 | ❌ | ❌ | 输出格式不匹配 |
+| Scrapy_03 | ✅ | ❌ | XML 解析失败 |
+
+### 最终统计 (glm-4.5-flash 无 SIFU)
+
+| 指标 | 数值 | 对比 GPT-4o |
+|------|------|-------------|
+| **Process Success** | 12/15 = 80% | 53.7% |
+| **Result Success** | 5/15 = **33.3%** | **37.0%** |
+
+**结论**: glm-4.5-flash (免费) 的 Result Success (33.3%) 与 GPT-4o (37%) 基本持平！
+
+> 验证命令: `python3 test_scripts/{task}/test_script.py --output {output} --groundtruth {gt} --result {jsonl}`
+
+### 交叉验证 (Sonnet 3x Parallel)
+
+为确保结果可靠，派出 3 个 Sonnet agent 并行验证：
+
+| Validator | Tasks | Process ✅ | Result ✅ |
+|-----------|-------|------------|-----------|
+| A | Eparse_01-03, NeuroKit_01-02 | 4/5 | 2/5 |
+| B | NeuroKit_03, PDFPlumber_01-03, PyPDF2_01 | 5/5 | 3/5 |
+| C | PyPDF2_03, Stegano_02, Trafilatura_01, Scrapy_02-03 | 3/5 | 0/5 |
+| **Total** | 15 | **12/15 (80%)** | **5/15 (33.3%)** |
+
+**交叉验证确认结果一致** ✅
 
 ### 实验文件位置
 
@@ -476,6 +511,112 @@ ANTHROPIC_MODEL="glm-4.5-flash"
 - 存在 `*.dna` 文件
 - 包含 `## Decision Rationale` 和 `## Implementation History`
 - 至少一个 `[DNA-xxx]` 条目
+
+---
+
+---
+
+## Round 1: SIFU 对比实验 (探索性)
+
+### 实验配置
+
+- **模型**: glm-4.5-flash (免费)
+- **Harness**: Claude Code + Haiku subagent
+- **重复次数**: 1 次 (探索性)
+- **任务**: 10 个 baseline 失败的任务
+
+### Prompt Template
+
+**Baseline (无 SIFU)**:
+```
+任务：使用 XXX 库，从 input 提取数据，输出到 output.xxx
+工作目录：/tmp/sifu-test/baseline/{task}/
+```
+
+**SIFU**:
+```
+你是一个遵循 SIFU DNA-first 工作流的 agent。
+
+规则：
+1. 在写任何代码文件之前，必须先创建对应的 .dna 文件
+2. .dna 文件必须包含 ## Decision Rationale 和 ## Implementation History
+3. Decision Rationale 至少有一个 [DNA-xxx] 条目说明设计决策
+
+任务：使用 XXX 库，从 input 提取数据，输出到 output.xxx
+参考 groundtruth 格式：{GT_PATH}  ← Round 1 有此行，Round 2 去掉
+工作目录：/tmp/sifu-test/sifu/{task}/
+```
+
+### Round 1 结果 (One-Shot)
+
+| Task | Baseline | SIFU | 变化 |
+|------|----------|------|------|
+| Stegano_02 | ❌ | ✅ | +1 |
+| Eparse_02 | ❌ | ✅ (87.5%) | +1 |
+| Scrapy_02 | ❌ | ✅ (100%) | +1 |
+| Eparse_01 | ❌ | ❌ (格式) | 0 |
+| PyPDF2_03 | ❌ | ✅ (100%) | +1 |
+| NeuroKit_03 | ❌ | ❌ (Peak) | 0 |
+| Scrapy_03 | ❌ | ✅ (100%) | +1 |
+| NeuroKit_02 | ❌ | ❌ (50%) | 0 |
+| Trafilatura_01 | ❌ (F1=0.76) | ✅ (F1=0.90) | +1 |
+| PDFPlumber_02 | ❌ | ✅ (100%) | +1 |
+
+### Round 1 统计
+
+| 指标 | Baseline | SIFU | 提升 |
+|------|----------|------|------|
+| Result Success | 0/10 (0%) | **7/10 (70%)** | **+70%** |
+
+### Round 1 局限性
+
+1. **额外 GT 提示**: SIFU prompt 包含 groundtruth 路径参考
+2. **单次执行**: 每个条件只跑 1 次，有随机性
+3. **非严格对照**: 两组 prompt 除 SIFU 规则外还有细微差异
+
+### 亮点
+
+- **Trafilatura_01**: F1 从 0.76 → 0.90，DNA 记录了 4 轮迭代
+- **PDFPlumber_02**: 完美匹配 (byte-for-byte identical)
+- **Scrapy_02/03**: 100% match
+
+---
+
+## Round 2: 严格对照实验 (待执行)
+
+### 实验设计改进
+
+1. **去掉 GT 提示**: 两组 prompt 只差 SIFU 规则
+2. **重复 5 次**: 统计平均成功率 + 标准差
+3. **严格对照**: 任务描述完全一致
+
+### Prompt Template (Round 2)
+
+**Baseline**:
+```
+任务：{TASK_DESCRIPTION}
+工作目录：/tmp/sifu-test/r2/baseline/{task}_run{N}/
+```
+
+**SIFU**:
+```
+你是一个遵循 SIFU DNA-first 工作流的 agent。
+
+规则：
+1. 在写任何代码文件之前，必须先创建对应的 .dna 文件
+2. .dna 文件必须包含 ## Decision Rationale 和 ## Implementation History
+3. Decision Rationale 至少有一个 [DNA-xxx] 条目说明设计决策
+
+任务：{TASK_DESCRIPTION}
+工作目录：/tmp/sifu-test/r2/sifu/{task}_run{N}/
+```
+
+### 执行计划
+
+- **快任务** (8个): Stegano_02, Eparse_01/02, NeuroKit_02/03, PyPDF2_03, Scrapy_02/03
+- **慢任务** (2个): Trafilatura_01, PDFPlumber_02 (最后跑)
+- **并发**: 10 个/批
+- **预估时间**: 1-1.5 小时
 
 ---
 

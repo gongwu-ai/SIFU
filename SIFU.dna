@@ -34,3 +34,10 @@
 - [DNA-017] NeuroKit ECG analysis testbed: Use NeuroKit library to detect R-wave and P-wave peaks from ECG signals for GitTaskBench NeuroKit_02 task.
 - [DNA-018] Eparse_01 extraction workflow: Extract tables from Excel files using Eparse library, save extracted data to output Excel files preserving original filenames.
 - [DNA-019] Scrapy_03 quotes scraping: Scrape quotes from quotes.toscrape.com/tag/humor/ using Scrapy library and output results to XML format matching gt.xml structure (quotes root with quote children containing text, author, tags elements).
+- [DNA-020] PyPDF2_03 metadata extraction: Extract PDF metadata (title, author, subject, creator, producer, creation_date, modification_date) using PyPDF2 library and output as JSON to output.json.
+- [DNA-021] Modular table extraction: Implement a clean function to detect and extract tables from Excel files, returning structured DataFrame output for each table found.
+- [DNA-022] File output strategy: Write extracted tables to Excel files in the working directory with original filenames, maintaining traceability of source and destination.
+- [DNA-024] Eparse_02 cell extraction: Use Eparse library's table parsing and serialization functions to extract all cells from an Excel file and output them as JSON lines format to output.txt.
+- [DNA-025] Cell serialization fields: Include all standard serialization fields: row, column, value, type, c_header, r_header, excel_RC, sheet, f_name in each output line as a JSON object.
+- [DNA-026] Table-aware extraction: Process Excel file to detect tables using Eparse's df_find_tables and df_serialize_table, ensuring structured cell data includes column/row headers.
+- [DNA-027] Scrapy_02 quotes scraping: Scrape humor quotes from quotes.toscrape.com/tag/humor/ using Scrapy library and output results to JSON format with text, author, and tags fields.

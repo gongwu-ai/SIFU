@@ -1,5 +1,12 @@
 # Project Overview
 
+> **当前任务**: R2 SIFU vs Baseline 对照实验
+> **Runbook**: `docs/2026011311_R2_EXPERIMENT_RUNBOOK.md` ← 必读！包含完整 prompts 和执行清单
+> **模型**: GLM-4.5-flash (智谱免费版)
+> **状态**: 准备执行 100 runs (10 tasks × 5 reps × 2 conditions)
+
+---
+
 ## Manifesto
 
 **Document First — Code's Not Important.**
