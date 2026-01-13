@@ -336,6 +336,17 @@ Agents can work asynchronously, timestamps can be out of order. But the logical 
 
 **待办**: 跑几个 task 做 SIFU demo，展示 DNA-first 工作流。
 
+**LLM Provider 兼容性 (2026)**:
+
+Claude Code 是目前最好的 agentic harness，因此主流 LLM provider 都主动兼容 Anthropic SDK：
+- Moonshot
+- DeepSeek
+- 智谱 (GLM)
+- MiniMax
+- 其他
+
+直接设置 `ANTHROPIC_API_KEY` + `ANTHROPIC_BASE_URL` 即可切换 provider。
+
 ### v0 Reality Check
 
 **v0 is a POC, not a usable product.**

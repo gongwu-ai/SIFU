@@ -130,6 +130,43 @@ SIFU 需要的 testbed 特征：
 
 ---
 
+## 测试进度 (2026-01-13)
+
+### 环境配置
+
+```bash
+# GLM-4.7 API (智谱)
+ANTHROPIC_AUTH_TOKEN="c07a6af74a74466ebfdfccdb71ee4ac3.yzPcqz2euw8R1BKK"
+ANTHROPIC_BASE_URL="https://open.bigmodel.cn/api/anthropic"
+
+# 运行命令
+claude --print --dangerously-skip-permissions "任务描述"
+```
+
+### 测试结果
+
+| Task | 状态 | DNA-first | 输出正确 |
+|------|------|-----------|----------|
+| Faker_01 | ✅ 成功 | ✅ | ✅ 100 rows |
+| Faker_02 | 🔄 进行中 | - | - |
+| Faker_03 | ⏳ 待测 | - | - |
+
+### 文件位置
+
+```
+/tmp/sifu-test/           # 测试工作目录
+/tmp/GitTaskBench/        # GitTaskBench (1.7GB)
+/tmp/GitTaskBench/.venv/  # Python 3.10 环境
+```
+
+### 下一步
+
+1. 完成 Faker_02, Faker_03 测试
+2. 统计成功率
+3. 尝试更多复杂任务
+
+---
+
 ## Sources
 
 - [GitTaskBench GitHub](https://github.com/QuantaAlpha/GitTaskBench)
