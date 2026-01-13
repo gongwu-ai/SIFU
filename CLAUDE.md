@@ -72,7 +72,7 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 | Principle | Explanation |
 |-----------|-------------|
 | **DNA-first** | Decision before implementation, always. No code without DNA. |
-| **Phenotype disposable** | Code can be deleted and regenerated from DNA anytime. |
+| **Phenotype disposable** | Code can be deleted and regenerated from DNA anytime. DNA outlives its implementation. |
 | **Wrong is OK** | Bad DNA can exist; use `DEPRECATED` + new entry, never delete. |
 | **Eventual consistency** | Local `.dna` can violate global rules if the violation is logged. |
 | **Logging only** | SIFU enforces logging + append-only, not correctness. Audit handles correctness. |
@@ -150,6 +150,10 @@ Agents can work asynchronously, timestamps can be out of order. But the logical 
 | **v1** | Write Gate | TBD (likely TS) | SIFU wrapper intercepts tool calls before file writes |
 | **v2 (if needed)** | Filesystem Gate | TBD (likely Rust) | OS-level enforcement via FUSE |
 
+**v1 Write Gate features (planned):**
+- Write interception: DNA-first enforcement at tool call level
+- Write threshold: Force commit after N lines of uncommitted changes (prevents "exam avoidance")
+
 **Language rationale:**
 - **v0 Python**: Fast iteration, pre-commit standard, minimal dependencies
 - **v1 TS**: If targeting VS Code extension or npm distribution
@@ -206,6 +210,24 @@ src/
 - `uv` for environments and dependency management
 - `git` for version control and hooks
 - `ripgrep` (`rg`) for fast text search
+
+## Open Questions
+
+### Agent Trust Problem
+
+SIFU enforces **process** (logging, append-only), not **truth** (content correctness).
+
+| What SIFU guarantees | What SIFU does NOT guarantee |
+|---------------------|------------------------------|
+| DNA entry exists | DNA content is true |
+| No deletions | Timestamps are accurate |
+| Causal structure | Rationale is honest |
+
+**Current stance**: Assume good-faith agents. Rely on audit for truth verification.
+
+**Future options**: External witness, cryptographic signing, cross-agent verification.
+
+> This is an open design question. Contributions welcome.
 
 # Agent Rules
 
