@@ -105,13 +105,55 @@ Example:
 - Changes: Added JWT validation in check_token()
 ```
 
+## DNA Validation Rules (v0)
+
+The pre-commit validator enforces these 5 checks:
+
+| Check | Description |
+|-------|-------------|
+| **1. Sidecar Existence** | Every code file needs a matching `.dna` sidecar |
+| **2. DNA Refs Valid** | All `[DNA-###]` refs must exist in `SIFU.dna` |
+| **3. Append-Only** | No deletions allowed in `.dna` files |
+| **4. Section Structure** | Must have `## Decision Rationale` and `## Implementation History` |
+| **5. Causal Order** | Session Refs can only reference IDs declared in Decision Rationale |
+
+### Causal Order Philosophy
+
+**Decision before implementation, always.**
+
+The causal order check enforces that every implementation change traces back to a declared decision:
+
+```
+## Decision Rationale
+- [DNA-001] This file handles authentication    ← Decision declared FIRST
+
+## Implementation History
+### Session: xxx
+- Refs: [DNA-001]                               ← Can only ref declared decisions
+- Changes: Added JWT validation
+```
+
+This ensures:
+- No implementation without rationale
+- Clear audit trail: "why did we make this change?"
+- The DNA is the cause, the code is the effect
+
+**Time order is irrelevant. Causal order is mandatory.**
+
+Agents can work asynchronously, timestamps can be out of order. But the logical chain (decision → implementation) must always be traceable.
+
 ## Roadmap
 
-| Phase | Gate | Description |
-|-------|------|-------------|
-| **v0 (Kickstarter)** | Commit Gate | Pre-commit hook validates DNA integrity (~60 lines Python) |
-| **v1** | Write Gate | SIFU wrapper intercepts tool calls before file writes |
-| **v2 (if needed)** | Filesystem Gate | OS-level enforcement via FUSE |
+| Phase | Gate | Language | Description |
+|-------|------|----------|-------------|
+| **v0 (Kickstarter)** | Commit Gate | Python | Pre-commit hook validates DNA integrity |
+| **v1** | Write Gate | TBD (likely TS) | SIFU wrapper intercepts tool calls before file writes |
+| **v2 (if needed)** | Filesystem Gate | TBD (likely Rust) | OS-level enforcement via FUSE |
+
+**Language rationale:**
+- **v0 Python**: Fast iteration, pre-commit standard, minimal dependencies
+- **v1 TS**: If targeting VS Code extension or npm distribution
+- **v2 Rust**: If FUSE performance matters
 
 **Vision**: Everyone opens SIFU before opening their agentic coding tool.
 

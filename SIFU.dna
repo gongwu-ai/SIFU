@@ -1,0 +1,10 @@
+# SIFU.dna - Global DNA Registry
+#
+# Format: [DNA-###] Description
+# Rules: Append-only. To invalidate, add DEPRECATED marker and new entry.
+
+[DNA-001] DNA-first development: decision before implementation, always.
+[DNA-002] Phenotype disposable: code can be deleted and regenerated from DNA.
+[DNA-003] Wrong is OK: bad DNA can exist; use DEPRECATED + new entry, never delete.
+[DNA-004] Eventual consistency: local .dna can diverge from global if logged.
+[DNA-005] Logging only: SIFU enforces logging + append-only, not correctness.

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# SIFU pre-commit hook: enforces DNA-first development
+python3 scripts/sifu_check.py
