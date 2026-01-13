@@ -9,8 +9,8 @@ from pathlib import Path
 # Patterns to exclude from sidecar requirement
 EXCLUDE_PATTERNS = [
     r"\.dna$", r"^SIFU\.dna$", r"^CLAUDE\.md$", r"^AGENTS\.md$", r"^README\.md$",
-    r"^\.git/", r"^\.venv/", r"^\.githooks/", r"^archive/", r"^docs/", r"^tests/", r"^scripts/",
-    r"\.gitignore$", r"\.json$", r"\.yaml$", r"\.yml$", r"\.toml$", r"\.md$",
+    r"^\.git/", r"^\.venv/", r"^\.githooks/", r"^\.claude/", r"^archive/", r"^docs/", r"^tests/", r"^scripts/", r"^src/", r"^dist/",
+    r"\.gitignore$", r"\.json$", r"\.yaml$", r"\.yml$", r"\.toml$", r"\.md$", r"\.lock$",
 ]
 
 

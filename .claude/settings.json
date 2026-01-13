@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx .claude/hooks/dna-enforcer.ts",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

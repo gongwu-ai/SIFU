@@ -77,6 +77,45 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 | **Eventual consistency** | Local `.dna` can violate global rules if the violation is logged. |
 | **Logging only** | SIFU enforces logging + append-only, not correctness. Audit handles correctness. |
 | **No orphan code** | DNA comes first, so code always has lineage. Losing impl is OK, losing lineage is not. |
+| **DNA ≠ Commit** | DNA update and git commit are independent operations. DNA is the goal, commit is optional. |
+| **Decision > History** | Only Decision Rationale has real value. Implementation History is low-value log, losing it is OK. |
+| **宁滥勿缺** | When unsure if rationale is needed, write it. Disk space is cheap, lost knowledge is not. |
+
+## Design Punchlines (设计哲学金句)
+
+这些是 SIFU 设计过程中提炼的核心思想，每个 agent 都应该理解：
+
+> **"v0完全不可用，没有harness配合就是废物"**
+> SIFU 必须配合 harness (CC hooks) 才能工作。
+
+> **"DNA不能删除但是可以删除它的实现"**
+> Phenotype disposable, genotype durable.
+
+> **"时间顺序不重要，因果顺序才重要"**
+> Causal order > temporal order. Decision → Implementation.
+
+> **"SIFU 强制的是流程，不是真相"**
+> 结构完整性 ≠ 内容真实性。Agent Trust Problem 是 open question.
+
+> **"DNA 更新 ≠ Commit，两者不是捆绑的"**
+> DNA 是 genotype 持久化，commit 是 phenotype 快照。独立操作。
+
+> **"Decision 有价值，History 是低价值 log，丢了无所谓"**
+> 只有 Decision Rationale 需要保护，Implementation History 可从 git diff 重建。
+
+> **"宁滥勿缺：不确定就写"**
+> Trade disk space for traceability. 漏写 = 知识丢失，多写 = 无所谓。
+
+### Rationale 判断公式
+
+```python
+if future_agent.看到这段代码().会问("为什么？"):
+    需要_rationale = True
+else:
+    需要_rationale = False
+
+# 不确定？写！
+```
 
 ## DNA Content Structure
 
@@ -147,7 +186,7 @@ Agents can work asynchronously, timestamps can be out of order. But the logical 
 | Phase | Gate | Language | Status |
 |-------|------|----------|--------|
 | **v0** | Commit Gate | Python | POC only - not usable standalone |
-| **v1** | Write Gate | Python | First real version - requires CC hooks |
+| **v1** | Write Gate | TypeScript | ✅ Implemented - requires CC hooks |
 | **v2 (if needed)** | Filesystem Gate | TBD (Rust?) | OS-level enforcement via FUSE |
 
 ### v0 Reality Check
@@ -172,10 +211,42 @@ v1 uses Claude Code's PreToolUse hooks to intercept Edit/Write tools. See `docs/
 **v1 features:**
 - Write interception via CC hooks (exit code 2 = block)
 - DNA-first enforcement at tool call level
-- Write threshold (force commit after N lines)
-- SIFU daemon for auto-summarization (v1.1+)
+- Write threshold (force commit after N lines) *(v1.1)*
+- SIFU daemon for auto-summarization *(v1.2)*
 
 **Vision**: Everyone opens SIFU before opening their agentic coding tool.
+
+### v1 Setup (Claude Code)
+
+**Prerequisites:** Node.js 18+
+
+**Files:**
+- `.claude/hooks/dna-enforcer.ts` - PreToolUse hook
+- `.claude/settings.json` - CC hook configuration
+- `src/` - Checker logic (TypeScript)
+- `package.json` + `tsconfig.json` - Build config
+
+**Install:**
+```bash
+npm install    # Install dependencies (tsx, typescript)
+npm run build  # Optional: compile to dist/
+```
+
+**How it works:**
+```
+Agent calls Write/Edit tool
+        │
+        ▼
+   CC PreToolUse hook fires
+        │
+        ▼
+   dna-enforcer.ts checks:
+        │
+        ├── file.dna exists? → exit 0 → Tool executes
+        │
+        └── file.dna missing? → exit 2 → BLOCKED
+                                         └── "Create .dna first"
+```
 
 ## Project Goals
 
@@ -189,19 +260,28 @@ v1 uses Claude Code's PreToolUse hooks to intercept Edit/Write tools. See `docs/
 
 ## Project Structure
 
-Planned minimal layout:
-
 ```
 Sifu/
-├── SIFU.dna              # Global DNA registry (shared rationales, IDs like [DNA-101])
-├── CLAUDE.md             # Agent instructions (this file)
+├── SIFU.dna                      # Global DNA registry
+├── CLAUDE.md                     # Agent instructions (this file)
+├── .claude/
+│   ├── hooks/
+│   │   └── dna-enforcer.ts       # v1 Write Gate hook
+│   └── settings.json             # CC hook configuration
+├── src/                          # v1 TypeScript source
+│   ├── types.ts
+│   ├── patterns.ts
+│   ├── checker.ts
+│   └── index.ts
+├── dist/                         # Compiled JS (gitignored)
 ├── scripts/
-│   └── sifu_check.py     # Pre-commit validator (~60 lines)
+│   └── sifu_check.py             # v0 pre-commit validator
 ├── .githooks/
-│   └── pre-commit        # Hook that calls validator
-├── tests/                # unittest coverage
+│   └── pre-commit                # v0 hook
+├── tests/                        # unittest coverage
+├── package.json                  # npm config
+├── tsconfig.json                 # TypeScript config
 └── docs/
-    └── 2026011220_SIFU_DESIGN.md  # Full design document
 ```
 
 Per-file DNA sidecars:
