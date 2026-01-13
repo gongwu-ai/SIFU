@@ -29,3 +29,5 @@
 - [DNA-012] Testbed required: Need separate project with full SIFU enforcement to observe real issues.
 - [DNA-013] 0号 DNA unnecessary: File purpose emerges from its rationales, no explicit meta needed.
 - [DNA-014] CLAUDE.md is SIFU.dna's phenotype: SIFU projects must have CLAUDE.md as the agent instruction file.
+- [DNA-015] Testbed 选型暂缓: 现有 benchmark 不适合长程/多角色，真实用户验证优先。
+- [DNA-016] SIFU 验证策略: Dogfood > 真实项目 > Benchmark，按此优先级验证。
