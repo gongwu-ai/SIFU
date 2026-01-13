@@ -28,3 +28,4 @@
 - ~~[DNA-011]~~ DEPRECATED: SIFU Daemon, removed as unnecessary (莫须有).
 - [DNA-012] Testbed required: Need separate project with full SIFU enforcement to observe real issues.
 - [DNA-013] 0号 DNA unnecessary: File purpose emerges from its rationales, no explicit meta needed.
+- [DNA-014] CLAUDE.md is SIFU.dna's phenotype: SIFU projects must have CLAUDE.md as the agent instruction file.

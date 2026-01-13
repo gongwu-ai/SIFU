@@ -33,6 +33,10 @@ This project was born from a conversation between a human and an agent. The agen
 
 This is the starting point. This is why we build SIFU.
 
+**CLAUDE.md is SIFU.dna's phenotype.**
+
+This file you're reading is the implementation of SIFU's decisions. SIFU.dna contains the "why" (decisions, principles). CLAUDE.md contains the "how" (agent instructions, rules). Every SIFU project must have a CLAUDE.md — it's the interface between SIFU's genotype and the agent's behavior.
+
 ---
 
 ## Source of Truth
