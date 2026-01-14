@@ -238,4 +238,78 @@ DNA 格式：
 
 ## 实验结果
 
-*(待填写)*
+### 汇总
+
+| Task | Baseline | SIFU | Delta |
+|------|----------|------|-------|
+| NeuroKit_03 | 4/5 (80%) | 4/5 (80%) | +0% |
+| Trafilatura_01 | 0/5 (0%) | 0/5 (0%) | +0% |
+| PDFPlumber_02 | 2/5 (40%) | 2/5 (40%) | +0% |
+| **Total** | **6/15 (40%)** | **6/15 (40%)** | **+0%** |
+
+### 对比 R4 vs R5
+
+| 实验 | Baseline | SIFU | Delta | 隔离状态 |
+|------|----------|------|-------|----------|
+| R4 (污染) | 12/15 (80%) | 14/15 (93%) | +13% | ❌ 读取了 CLAUDE.md |
+| R5 (隔离) | 6/15 (40%) | 6/15 (40%) | +0% | ✅ 隔离成功 |
+
+### DNA 文件验证
+
+SIFU 条件下成功创建了规范的 DNA 文件：
+- 格式正确：`## Decision Rationale` + `## Implementation History`
+- 使用了 `[DNA-###]` 编号
+- 包含 `DEPRECATED` 标记
+- 多个 Session 记录
+
+示例（Trafilatura_01_run3）：
+```markdown
+# extract_content.py.dna
+
+## Decision Rationale
+- [DNA-001] Use trafilatura.fetch_url() to download the URL...
+- [DNA-002] Use trafilatura.extract() with output_format='txt'...
+- ~~[DNA-005]~~ DEPRECATED: Initial attempt to add metadata formatting...
+- [DNA-006] Use trafilatura.extract() without with_metadata=True...
+
+## Implementation History
+### Session 1
+- Refs: [DNA-001], [DNA-002], [DNA-003], [DNA-004]
+- Changes: Created Python script using trafilatura library...
+```
+
+---
+
+## 结论
+
+### 核心发现
+
+1. **隔离有效** - 使用 `cd "$workdir"` 成功隔离，agent 没有读取 SIFU 项目的 CLAUDE.md
+
+2. **整体成功率下降** - R4 平均 ~87% → R5 40%，说明 CLAUDE.md 本身对 agent 表现有显著帮助
+
+3. **DNA 没有带来额外差异** - 在隔离条件下，有 DNA 和没有 DNA 的成功率完全相同
+
+4. **R4 的差异来源于 CLAUDE.md 污染** - R4 显示的 +13% 差异不是 DNA 机制本身的效果
+
+### 解读
+
+| 假设 | R4 支持？ | R5 支持？ | 结论 |
+|------|----------|----------|------|
+| DNA 机制提升成功率 | ✅ +13% | ❌ +0% | **不成立** |
+| CLAUDE.md 提升成功率 | N/A | ✅ 87%→40% | **成立** |
+| DNA 格式规范被正确遵循 | ✅ | ✅ | **成立** |
+
+### 启示
+
+1. **CLAUDE.md 是关键** - 项目级规范对 agent 表现有显著影响，不仅仅是 DNA 格式
+
+2. **DNA 机制需要配合 CLAUDE.md** - 单独的 DNA prompt 不足以提升性能
+
+3. **实验设计的重要性** - R4 的污染问题说明隔离对于实验有效性至关重要
+
+### 后续方向
+
+1. 设计 R6：在隔离条件下，加入简化版 CLAUDE.md，验证项目级规范的价值
+2. 研究 CLAUDE.md 的哪些部分对 agent 表现影响最大
+3. 探索 DNA + CLAUDE.md 的协同效果
