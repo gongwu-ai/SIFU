@@ -582,7 +582,7 @@ ANTHROPIC_MODEL="glm-4.5-flash"
 
 ---
 
-## Round 2: 严格对照实验 (待执行)
+## Round 2: 严格对照实验 ✅ 已完成
 
 ### 实验设计改进
 
@@ -617,6 +617,188 @@ ANTHROPIC_MODEL="glm-4.5-flash"
 - **慢任务** (2个): Trafilatura_01, PDFPlumber_02 (最后跑)
 - **并发**: 10 个/批
 - **预估时间**: 1-1.5 小时
+
+---
+
+## Round 2 实验结果 (2026-01-13)
+
+### 执行概况
+
+| 指标 | 值 |
+|------|-----|
+| **模型** | GLM-4.5-flash (智谱免费版) |
+| **总运行数** | 100 (10 tasks × 5 reps × 2 conditions) |
+| **完成率** | 100/100 (100%) |
+| **执行时间** | ~8 小时 (含 429 重试) |
+
+### 结果汇总
+
+| Metric | Baseline | SIFU | Delta | Notes |
+|--------|----------|------|-------|-------|
+| **Process Success** | 50/50 (100%) | 50/50 (100%) | 0% | 都产出了文件 |
+| **Format Naming** | 40/50 (80%) | 36/50 (72%) | -8% | 文件名规范 (⚠️ 待验证) |
+| **Official Test** | 13/42 (30%) | 15/45 (33%) | **+3%** | 官方脚本验证 |
+| **Test (ignore naming)** | 15/42 (35%) | 16/45 (35%) | 0% | 忽略命名，内容匹配 |
+
+> ⚠️ **数据矛盾待验证**: Format Naming 80% 与 Official Test 30% 差距过大
+
+### 分任务结果 (Official Test)
+
+| Task | Baseline | SIFU | Winner |
+|------|----------|------|--------|
+| Stegano_02 | 0/5 | 0/5 | Tie |
+| Eparse_01 | 2/5 | 1/5 | Baseline |
+| Eparse_02 | 3/5 | 2/5 | Baseline |
+| NeuroKit_02 | 1/5 | 3/5 | **SIFU** |
+| NeuroKit_03 | 0/5 | 0/5 | Tie |
+| PyPDF2_03 | 5/5 | 5/5 | Tie |
+| Scrapy_02 | 1/5 | 4/5 | **SIFU** |
+| Scrapy_03 | 0/5 | 0/5 | Tie |
+| Trafilatura_01 | 0/5 | 0/5 | Tie |
+| PDFPlumber_02 | 1/5 | 0/5 | Baseline |
+| **TOTAL** | **13/42 (30%)** | **15/45 (33%)** | **SIFU +3%** |
+
+### 关键发现
+
+1. **SIFU 不阻碍任务完成**: Process Success 都是 100%
+2. **SIFU 官方测试略优**: 33% vs 30% (+3%)
+3. **SIFU 在特定任务表现更好**: NeuroKit_02 (1→3), Scrapy_02 (1→4)
+4. **命名问题是主要瓶颈**: 大量 "-" 是因为找不到正确命名的文件
+5. **忽略命名后无差异**: 35% vs 35% (tie)
+
+### R1 vs R2 对比
+
+| Round | 设计 | Baseline | SIFU | 结论 |
+|-------|------|----------|------|------|
+| R1 | 有GT提示, 1次 | 0% | 70% | SIFU +70% (有偏) |
+| R2 | 无GT提示, 5次 | 36% | 38% | SIFU +2% (严格对照) |
+
+**结论**: R1 的 +70% 提升主要来自 GT 提示 (prompt leak)，R2 严格对照下 SIFU 有 +2% 微弱优势。
+
+### R2 交叉验证 (3 Sonnet + 2 Opus)
+
+**3/5 agents 结果一致**:
+
+| Metric | Baseline | SIFU | Delta |
+|--------|----------|------|-------|
+| Naming Correct | 84% | 88% | **+4%** |
+| Test Passed | 36% | 38% | **+2%** |
+
+详细结果: `docs/2026011313_R2_EXPERIMENT_RESULTS.md`
+
+### 文件位置
+
+```
+/tmp/sifu-test/r2/baseline/{task}_run{1-5}/  # Baseline 输出
+/tmp/sifu-test/r2/sifu/{task}_run{1-5}/      # SIFU 输出
+/Users/wenhaodeng/Desktop/Sifu/docs/2026011313_R2_EXPERIMENT_RESULTS.md  # 详细结果
+```
+
+---
+
+## R3 Haiku 实验 (2026-01-13)
+
+### 目标
+
+用 Haiku 模型测试 5 个 GLM-4.5-flash 无法解决的难任务。
+
+### 实验设置
+
+| 参数 | 值 |
+|------|-----|
+| 模型 | Claude Haiku (via Claude Code subagent) |
+| 任务 | 5 个难任务 |
+| 重复 | 5 次 |
+| 总 runs | 50 (5 × 5 × 2 conditions) |
+
+### 选定任务
+
+| Task | 难点 |
+|------|------|
+| Stegano_02 | 图像水印提取 |
+| NeuroKit_03 | EOG 呼吸信号分析 |
+| Scrapy_03 | 网页内容转 XML |
+| Trafilatura_01 | 网页内容提取 |
+| PDFPlumber_02 | PDF 表格提取 |
+
+### 交叉验证结果 (修正后)
+
+> **注意**: 原始 grep 有 bug，Scrapy_03 的 test_script 输出 `"Results": true` 而非 `"Result": true`。
+
+| Task | Baseline | SIFU | Delta |
+|------|----------|------|-------|
+| Stegano_02 | 5/5 (100%) | 5/5 (100%) | 0 |
+| NeuroKit_03 | 0/5 (0%) | 0/5 (0%) | 0 |
+| Scrapy_03 | 5/5 (100%) | 5/5 (100%) | 0 |
+| Trafilatura_01 | 0/5 (0%) | 0/5 (0%) | 0 |
+| PDFPlumber_02 | 0/5 (0%) | 0/5 (0%) | 0 |
+| **Total** | **10/25 (40%)** | **10/25 (40%)** | **0** |
+
+### 失败案例原始数据
+
+详细分析见: `docs/2026011317_R3_FAILURE_ANALYSIS.md`
+
+| Task | 测试失败原因 | 输出 vs GT 差异 |
+|------|-------------|----------------|
+| NeuroKit_03 | TypeError (格式解析失败) | 列顺序不同，数值不同 |
+| Trafilatura_01 | F1=0.8723 < 0.9 | 缺少 metadata (作者、日期) |
+| PDFPlumber_02 | Cell match=57.69% < 75% | 行数不同 (79 vs 82) |
+
+### SIFU 合规性
+
+Haiku 100% 遵循 SIFU 协议：
+- 所有 25 个 SIFU runs 都创建了 `.dna` 文件
+- .dna 文件格式正确（有 Decision Rationale + Implementation History）
+
+### 关键发现
+
+1. **任务太难**: 4/5 任务对 Haiku 来说是 impossible（0% 成功率）
+2. **SIFU 无提升**: 在 impossible 任务上，SIFU 无法提供帮助
+3. **SIFU 合规 ≠ SIFU 有效**: Haiku 完美遵循 DNA-first 流程，但任务本身超出能力范围
+
+### 思考：SIFU 的价值边界
+
+| 场景 | SIFU 能否帮助 |
+|------|---------------|
+| 任务在模型能力范围内 | ✅ 可能有帮助（R2 +2%）|
+| 任务超出模型能力 | ❌ 无法帮助（流程无法弥补能力）|
+| 需要迭代修正的任务 | 🤔 待验证 (需要 audit feedback loop) |
+
+**核心洞察**: SIFU 强制的是流程（规划先于实现），不是能力（解决问题）。对于 impossible 任务，需要的是：
+1. **Auditable spec** - 可检查的中间产物
+2. **Audit feedback** - 外部反馈告诉 agent 哪里错了
+3. **Iterative refinement** - 基于反馈修正
+
+单次执行 + DNA 记录无法让 agent "凭空"获得解决难题的能力。
+
+### Opus 交叉验证结论 (2026-01-13)
+
+详细分析见: `docs/2026011317_R3_FAILURE_ANALYSIS.md`
+
+**Opus 独立验证确认数据正确 (20/50 = 40%)**
+
+**四个问题的答案**:
+
+| 问题 | 结论 |
+|------|------|
+| DNA 不足 vs 能力不足？ | 两者皆有，主要是 DNA spec 不足 |
+| 测试反馈能否修复？ | 格式可修，算法问题不确定 |
+| SIFU 起了什么作用？ | 中性偏负（写错 spec 比没 spec 更危险） |
+| 成功 vs 失败差异？ | 低歧义+高容错 vs 高歧义+低容错 |
+
+**关键洞察**:
+
+1. **DNA 质量 = Agent 能力**。SIFU 保证 "有 DNA"，不保证 "DNA 正确"
+2. **当前实验设计无法体现 SIFU 价值**。one-shot 无 feedback 不是 SIFU 的目标场景
+3. **需要 audit loop 实验**。给 test 结果反馈，观察 DNA 是否帮助定位和修复问题
+
+### 文件位置
+
+```
+/tmp/sifu-test/r3/baseline/{task}_run{1-5}/  # Baseline 输出
+/tmp/sifu-test/r3/sifu/{task}_run{1-5}/      # SIFU 输出 + .dna 文件
+/tmp/r3_validate/                            # 验证结果
+```
 
 ---
 

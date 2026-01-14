@@ -41,3 +41,4 @@
 - [DNA-025] Cell serialization fields: Include all standard serialization fields: row, column, value, type, c_header, r_header, excel_RC, sheet, f_name in each output line as a JSON object.
 - [DNA-026] Table-aware extraction: Process Excel file to detect tables using Eparse's df_find_tables and df_serialize_table, ensuring structured cell data includes column/row headers.
 - [DNA-027] Scrapy_02 quotes scraping: Scrape humor quotes from quotes.toscrape.com/tag/humor/ using Scrapy library and output results to JSON format with text, author, and tags fields.
+- [DNA-028] PDFPlumber_02 table extraction: Extract all tables from first two pages of PDF using pdfplumber library and merge them into a single CSV output file while preserving original table structure and content.
