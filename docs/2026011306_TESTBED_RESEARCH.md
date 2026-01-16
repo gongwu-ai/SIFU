@@ -802,6 +802,209 @@ Haiku 100% 遵循 SIFU 协议：
 
 ---
 
+## R6 CLAUDE.md 消融实验 (2026-01-15)
+
+### 目标
+
+验证 CLAUDE.md 本身（而非 DNA 格式规范）对 agent 性能的影响。
+
+### 背景
+
+- R4 实验因工作目录未隔离，agent 读取了 SIFU 项目的 CLAUDE.md，导致实验污染
+- R5 用 `--cwd` 隔离后，SIFU vs Baseline 无差异 (40% vs 40%)
+- R6 设计：**相同 prompt，只控制 CLAUDE.md 存在与否**
+
+### 实验配置
+
+| 参数 | 值 |
+|------|-----|
+| 模型 | Claude Haiku |
+| 任务 | Trafilatura_01 |
+| 重复 | 10 次 |
+| 最大迭代 | 8 |
+| Prompt | 两组完全相同 |
+| 唯一差异 | with_claude 从 SIFU 目录运行（读 CLAUDE.md）|
+
+### 实验设计
+
+```bash
+# without_claude: 隔离到工作目录，不读 CLAUDE.md
+(cd "$workdir" && claude --model haiku --print ... -p "$PROMPT")
+
+# with_claude: 从 SIFU 目录运行，读取 CLAUDE.md
+(cd /Users/wenhaodeng/Desktop/Sifu && claude --model haiku --print ... -p "$PROMPT")
+```
+
+### 结果
+
+| Condition | Success | Rate |
+|-----------|---------|------|
+| **without_claude** | 2/10 | **20%** |
+| **with_claude** | 9/10 | **90%** |
+| **差异** | | **+70%** |
+
+### 详细数据 (with_claude)
+
+| Run | Result | Success Iter |
+|-----|--------|--------------|
+| 1 | True | 5 |
+| 2 | True | 2 |
+| 3 | True | 6 |
+| 4 | True | 2 |
+| 5 | True | 2 |
+| 6 | True | 2 |
+| 7 | True | 3 |
+| 8 | **False** | - |
+| 9 | True | 7 |
+| 10 | True | 2 |
+
+### 关键发现
+
+1. **CLAUDE.md 效果显著**: 相同 prompt，成功率从 20% → 90% (+70%)
+
+2. **不是 DNA 格式规范**: SIFU prompt 规定的 DNA 格式规范 (R5) 无效果，真正起作用的是 CLAUDE.md 整体
+
+3. **CLAUDE.md 的关键内容**:
+   - Entropy Reduction（确认理解后再执行）
+   - Code Review（显式审查设计决策）
+   - Error Handling（聚焦问题）
+   - Modular Development（先测试再集成）
+   - DNA-first thinking（先写决策再写代码）
+
+4. **R4 +13% 来源确认**:
+   - R4: 污染（两者都读 CLAUDE.md）→ 微弱差异
+   - R5: 隔离（都不读）→ 无差异
+   - R6: 纯粹对比（有/无）→ +70%
+
+### 结论
+
+**项目级 agent 规范 (CLAUDE.md) 对 agentic 编码任务有显著影响。**
+
+SIFU 的核心价值不仅是 DNA 格式，更是通过 CLAUDE.md 定义 agent 的行为准则。
+
+### 文件位置
+
+```
+/tmp/sifu-test/r6/without_claude/Trafilatura_01_run{1-10}/
+/tmp/sifu-test/r6/with_claude/Trafilatura_01_run{1-10}/
+/tmp/sifu-test/r6/run_single.sh  # 实验脚本
+```
+
+---
+
+## R7 设计：SIFU 通用 CLAUDE.md
+
+### 目标
+
+设计一个通用的、可公开的 SIFU 专属 CLAUDE.md，包含核心行为准则但不包含私有 IP。
+
+### 内容分析
+
+**私有 IP（排除）**:
+- 特定项目结构（docs/、papers/、ref_codes/）
+- 工具偏好（uv、unittest vs pytest）
+- 文档命名规范（yyyymmddhh_TITLE）
+- API keys/credentials
+- Git commit 格式
+- SubAgent 实现细节
+
+**通用原则（保留）**:
+
+| 原则 | 说明 | R6 贡献推测 |
+|------|------|-------------|
+| **DNA-first** | 决策先于实现 | 中 |
+| **Entropy Reduction** | 确认理解后再执行 | **高** |
+| **Code Review** | 显式审查设计决策 | 高 |
+| **Error Handling** | 聚焦问题 | 中 |
+| **Modular Development** | 先测试再集成 | 中 |
+| **Toy-First** | 先小后大 | 中 |
+| **Manageable Milestones** | 步步为营 | 中 |
+| **Collaboration** | 对话式协作 | 中 |
+
+### 精简版模板
+
+位置: `templates/SIFU_CLAUDE_TEMPLATE.md`
+
+```markdown
+# SIFU Agent Rules
+
+## Core Philosophy
+- DNA-first: Decision before implementation
+- Wrong is OK: Mark DEPRECATED, never delete
+- 宁滥勿缺: When unsure, write rationale
+
+## Entropy Reduction (CRITICAL)
+- Rephrase and confirm before executing
+- Flag conflicts with prior decisions
+- Break multi-part requests into sub-tasks
+- List assumptions explicitly
+
+## Code Review
+- Walk through key design decisions
+- Highlight non-obvious implementation choices
+- Use ASCII diagrams for verification
+
+## Modular Development
+- Test independently before integrating
+- Incremental approach to minimize risk
+
+## Toy-First Workflow
+- Design simple examples first
+- Use validated toys as references
+```
+
+### R7 实验结果 (2026-01-16)
+
+**Ablation Study**: 测试不同规则组合的效果
+
+| Condition | 包含规则 | Success | Rate |
+|-----------|---------|---------|------|
+| **all_8** | 全部 8 条 | 2/5 | **40%** |
+| **high_only** | ER + CR | 1/5 | **20%** |
+| **entropy_only** | 只有 ER | 0/5 | **0%** |
+| **no_entropy** | 7 条 (去 ER) | 0/5 | **0%** |
+| **mid_only** | DF + EH + MD | 1/5 | **20%** |
+
+**对比 R6**:
+
+| Condition | Rate | vs baseline |
+|-----------|------|-------------|
+| R6 baseline (无 CLAUDE.md) | 20% | - |
+| R7 all_8 (精简版) | 40% | +20% |
+| R6 full CLAUDE.md | 90% | **+70%** |
+
+### R7 关键发现
+
+1. **精简版效果有限**: all_8 只有 40%，远低于完整版 90% (-50%)
+
+2. **单条规则无效**: entropy_only = 0%，单独的 Entropy Reduction 完全没用
+
+3. **规则组合也无效**: high_only、mid_only、no_entropy 都接近 baseline (20%)
+
+4. **完整版的价值不可拆分**: 效果来自整体配方，不是单一成分
+
+### R7 结论
+
+**CLAUDE.md 的效果来自整体，不是单独的规则。**
+
+可能原因：
+- 项目上下文 (SIFU 设计哲学、Manifesto)
+- 规则之间的协同效应
+- 完整版的细节和具体指导
+- 示例代码和 ASCII 图表
+
+**IP 安全**: 精简版 (40%) 远不如完整版 (90%)，核心价值无法被简单提取。
+
+### 文件位置
+
+```
+/tmp/sifu-test/r7/templates/           # 各条件的 CLAUDE.md
+/tmp/sifu-test/r7/{condition}/         # 实验输出
+/tmp/sifu-test/r7/run_ablation.sh      # 实验脚本
+```
+
+---
+
 ## Sources
 
 - [GitTaskBench GitHub](https://github.com/QuantaAlpha/GitTaskBench)

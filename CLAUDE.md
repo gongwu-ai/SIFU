@@ -19,6 +19,10 @@ An agent can crash, play video games, go to Tesco — it doesn't matter. Once th
 
 Bad decisions can exist. Mark them `DEPRECATED`, add new ones. The log shows the evolution of thinking. No judge needed — history is the judge.
 
+**Good decisions always survive from audit.**
+
+This is the essence of self-healing. SIFU can't prevent hallucinations, but it ensures they get discovered and corrected. Bad DNA fails in practice, gets marked DEPRECATED, and good DNA takes over. Natural selection for decisions.
+
 **Trade disk space for traceability.**
 
 We don't care if the disk explodes. We care that every decision has a lineage, every change has a rationale, every file has a story.
@@ -104,6 +108,9 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 
 > **"Agent Trust 靠迭代自愈"**
 > 恶意 agent 写假 rationale → EOL → 新 agent 发现按 rationale 做不通 → 标记 DEPRECATED → 写真 rationale → 系统自愈。
+
+> **"Good decisions always survive from audit"**
+> Self-healing 的本质。SIFU 不能阻止幻觉，但能让幻觉被发现和纠正。坏 DNA 在实践中失败，好 DNA 在自然选择中存活。
 
 > **"DNA 更新 ≠ Commit，两者不是捆绑的"**
 > DNA 是 genotype 持久化，commit 是 phenotype 快照。独立操作。
