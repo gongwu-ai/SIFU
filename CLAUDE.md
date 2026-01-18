@@ -47,6 +47,19 @@ This file you're reading is the implementation of SIFU's decisions. SIFU.dna con
 
 Full design details: `docs/2026011220_SIFU_DESIGN.md`
 
+## Release Repository
+
+**发布仓库**: https://github.com/AI4Science-WestlakeU/SIFU
+
+这是 SIFU 的公开发布仓库。我们从开发仓库 cherry-pick 内容到发布仓库，不是直接 push 全部内容。
+
+```bash
+# 克隆发布仓库
+git clone https://github.com/AI4Science-WestlakeU/SIFU.git /tmp/SIFU
+
+# cherry-pick 特定内容后 commit & push
+```
+
 ## Initiative
 
 Build a minimal "kickstarter" for **DNA-first development**:
