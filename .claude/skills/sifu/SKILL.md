@@ -1,99 +1,143 @@
 ---
 name: sifu
-description: "SIFU DNA-first guide. Format reference, workflow, exemptions, and CLI commands."
+description: "SIFU DNA-first framework. BINDING rules for all file write/create/update operations. Every authored file needs a hidden .dna.md sidecar with decision rationale BEFORE code changes. Triggers on Write, Edit, Create, Bash(sed/tee/cat/>), StrReplace, write_file, replace."
 user-invocable: true
 ---
 
-# SIFU — DNA-First Development Guide
+# SIFU — DNA-First Development Framework
 
-## DNA Entry Format
+> **BINDING**: All rules in this document are mandatory for every write operation.
+> Applies to: Write, Edit, Create, StrReplace, write_file, replace, and any Bash command that creates or modifies files (sed, tee, cat >, echo >, cp, mv).
 
-One line per entry. Append at END of file only.
+## Core Principle
+
+**DNA before code. Always.**
+
+Every authored file has a hidden `.dna.md` sidecar recording WHAT changed and WHY. Code is disposable phenotype; decision rationale is the genotype that persists.
+
+## BINDING Rules
+
+### Rule 1: DNA Before Write
+
+Before modifying ANY non-exempt file, you MUST:
+1. Ensure its `.dna.md` sidecar exists
+2. Insert a new DNA entry at the TOP of the table (after header)
+3. THEN make the code change
+
+If the `.dna.md` does not exist, create it BEFORE writing the code file. **No exceptions.**
+
+### Rule 2: Hidden Sidecar Naming
 
 ```
-- [DNA-{NNN}] {timestamp} / {agent}: {what + why}
+src/foo.js           <- code (phenotype)
+src/.foo.js.dna.md   <- DNA (genotype, hidden)
 ```
 
-Example:
-```
-- [DNA-006] 202603291402+0800 / main: simplified DNA to one-line format, old two-section structure caused agent ordering mistakes
-```
+Convention: `.{filename}.dna.md` (dot-prefix, next to the file).
 
-- `[DNA-{NNN}]` — globally unique ID, registered in `SIFU.dna.md`
-- Timestamp — run `date +%Y%m%d%H%M%z` to get real time. Never fabricate.
-- Every modification = brand new DNA ID. Never reuse an existing ID, even for the same file. Two edits to the same file = two different IDs.
-- To deprecate: append new entry like `deprecated [DNA-003] because...`. Don't touch original.
-
-## .dna.md File
-
-Every authored file gets a `.dna.md` sidecar next to it:
-
-```
-sifu-init.js         ← code
-sifu-init.js.dna.md  ← DNA (append-only)
-```
-
-Frontmatter:
-```yaml
----
-file: sifu-init.js
----
-```
-
-Then DNA entries, one per line, appended at END:
-```
-- [DNA-006] 202603291402+0800 / main: simplified DNA to one-line format, old two-section structure caused agent ordering mistakes
-- [DNA-007] 202603291530+0800 / main: added multi-harness support, different harnesses use different tool names (Write|Edit vs StrReplace vs write_file|replace)
-```
-
-## SIFU.dna.md (Global Registry)
-
-At project root. All DNA IDs registered here. Same format — one line per ID, append at END:
+### Rule 3: DNA File Structure
 
 ```markdown
-- [DNA-006] simplified DNA to one-line format
-- [DNA-007] added multi-harness support
-- [DNA-008] inlined templates into sifu-init.js, removed templates/ directory
+---
+file: src/foo.js
+purpose: HTTP client wrapper — retry logic, timeout, auth header injection
+last: c3d4e5f6 @ 202603291530+0800
+entries: 3
+---
+
+| ID | Time | Agent | Act | Rationale |
+|----|------|-------|-----|-----------|
+| c3d4e5f6 | 202603291530+0800 | sonnet | add auth header | every request needs bearer token |
+| b2c3d4e5 | 202603291415+0800 | opus | add backoff | fixed delay caused thundering herd |
+| a1b2c3d4 | 202603291402+0800 | opus | initial creation | need centralized HTTP with retry |
 ```
 
-Register here FIRST, then reference in `.dna.md` files.
+**Newest first**: most recent entry is the first data row.
+
+### Rule 4: 5-Column Table
+
+| Column | Description |
+|--------|-------------|
+| **ID** | 8-char hex hash (see Rule 5) |
+| **Time** | From `date +%Y%m%d%H%M%z`. Never fabricate. |
+| **Agent** | Who: `opus`, `sonnet`, `haiku`, `human`, agent name |
+| **Act** | What was done — imperative form |
+| **Rationale** | Why it was done — the decision reasoning |
+
+### Rule 5: DNA ID Generation
+
+```
+hash8 = sha256( filepath | timestamp | sha256(file_content_before_change) ).substring(0, 8)
+```
+
+- If file does not exist yet: use `sha256("")` as before_hash
+- IDs are content-addressed. No global registry needed.
+- For quick manual use: run `sifu hash <file>` to generate an ID
+
+### Rule 6: Insert-Only (Newest First)
+
+- New entries go at TOP after header separator (`|----|------|...`). Always.
+- Never modify, delete, or reorder existing rows.
+- Column alignment is NOT required. Pipes present, padding optional.
+- **Deprecation**: insert new row at top with Act = `deprecated <old_id>`.
+
+Edit tool pattern to insert:
+```
+old_string: |----|------|-------|-----|-----------|
+new_string: |----|------|-------|-----|-----------|
+| new_id | timestamp | agent | act | rationale |
+```
+
+### Rule 7: Frontmatter
+
+| Field | Who maintains | Mutability |
+|-------|--------------|------------|
+| `file` | Agent at creation | Immutable |
+| `purpose` | Agent | Semi-stable (update when role changes) |
+| `last` | `sifu-cli sync` | Auto-updated cache |
+| `entries` | `sifu-cli sync` | Auto-updated cache |
+
+**Frontmatter IS mutable** (metadata). Table rows are insert-only (DNA).
+
+### Rule 8: Exemptions
+
+Defined in `.sifuignore` at project root (`.gitignore` syntax). If absent, hardcoded defaults apply.
+
+Common exemptions: `.git/`, `.claude/`, `node_modules/`, `dist/`, `*.lock`, `*.png`, `*.pdf`, `.env`, `.gitignore`, `LICENSE`, `package-lock.json`.
+
+**Everything NOT in `.sifuignore` needs DNA.**
 
 ## Workflow
 
-1. Run `date +%Y%m%d%H%M%z` — get real timestamp
-2. Pick next DNA ID number (check SIFU.dna.md for latest)
-3. Append `- [DNA-{NNN}] {description}` to END of `SIFU.dna.md`
-4. Append `- [DNA-{NNN}] {timestamp} / {agent}: {what + why}` to END of `{file}.dna.md`
-5. Now edit the code file
+1. `date +%Y%m%d%H%M%z` — get real timestamp
+2. Compute before_hash: `sha256(file_content)` or `sha256("")` for new files
+3. Generate ID: `sha256(filepath|timestamp|before_hash).substring(0,8)`
+4. If `.dna.md` missing → create with frontmatter + header + first entry
+5. If `.dna.md` exists → insert new row at TOP after header
+6. NOW edit the code file
 
-For new files: create `{file}.dna.md` with frontmatter + first entry BEFORE creating the code file.
+## Progressive Delivery (Reading DNA)
 
-## Append-Only Rules
+```
+Level 0: frontmatter only → file purpose, freshness, activity
+Level 1: top 3 rows       → recent decisions
+Level 2: full table        → complete history
+Level 3: DNA + code        → full picture
+```
 
-- New entries go at END of file. Always.
-- Never prepend (add before existing entries).
-- Never insert in the middle.
-- Never delete any entry.
-- Never modify existing entries.
-- When using Edit tool: match the LAST line of the file, put new content AFTER it.
-
-## Exempt Files (no .dna.md needed)
-
-Only auto-generated, binary, and tool-internal files are exempt:
-
-**Directories:** `.git/`, `.claude/`, `.cursor/`, `.codex/`, `.opencode/`, `.github/`, `.venv/`, `__pycache__/`, `node_modules/`, `dist/`, `build/`
-
-**Extensions:** `.lock`, `.pyc`, `.so`, `.dll`, `.png`, `.jpg`, `.gif`, `.svg`, `.pdf`, `.zip`, `.tar`, `.gz`, `.woff`, `.mp3`, `.mp4`, `.log`
-
-**Filenames:** `SIFU.dna.md`, `.gitignore`, `.claudeignore`, `.env`, `__init__.py`, `LICENSE`
-
-**Everything else needs DNA** — including `.py`, `.js`, `.ts`, `.go`, `.rs`, `.sh`, `.md`, `.json`, `.yaml`, `.toml`, `.txt`, `.cfg`, `.csv`, config files, documentation, scripts.
+Or use CLI: `sifu read <file>` (top 10), `sifu read <file> -n 20`, `sifu read <file> --all`
 
 ## CLI Commands
 
 ```bash
-node sifu-cli.js init             # Initialize SIFU in current project
-node sifu-cli.js check            # List files missing .dna.md
-node sifu-cli.js status           # Show DNA coverage stats
-node sifu-cli.js new <file>       # Generate .dna.md template for a file
+sifu check            # List files missing .dna.md
+sifu status           # DNA coverage stats
+sifu new <file>       # Create .dna.md template with hash8 ID
+sifu read <file>      # Top 10 entries (newest first)
+sifu sync             # Update frontmatter caches
+sifu hash <file>      # Generate DNA hash8 ID
 ```
+
+## Full Specification
+
+See [`docs/2026032913_DNA_FORMAT_SPEC.md`](../../docs/2026032913_DNA_FORMAT_SPEC.md) for complete format details.
