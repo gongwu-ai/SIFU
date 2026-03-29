@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * SIFU CLI (v5)
+ * SIFU CLI (0.1.0)
  *
  * Commands: check, status, new, read, sync, hash
  * Zero dependencies — pure Node.js.
@@ -307,7 +307,7 @@ switch (cmd) {
   case "sync":   cmdSync(); break;
   case "hash":   cmdHash(args[1]); break;
   default:
-    console.log("SIFU CLI (v5)\n");
+    console.log("SIFU CLI (0.1.0)\n");
     console.log("  sifu check            List files missing .dna.md");
     console.log("  sifu status           Show DNA coverage stats");
     console.log("  sifu new <file>       Create .dna.md template with hash8 ID");

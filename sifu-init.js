@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * SIFU Initializer (v5)
+ * SIFU Initializer (0.1.0)
  *
  * Installs SIFU DNA-first framework into AI coding projects.
  * Soft enforcement only — installs SKILL, no hooks, no rules injection.
- * Full installer with harness adaptation + ASCII art coming in v5.1.
+ * Full installer with harness adaptation + ASCII art coming in next release.
  *
  * Usage: node sifu-init.js [--claude|--cursor|--codex|--gemini|...]
  * Zero dependencies.
@@ -69,7 +69,7 @@ let harnesses = args
   .map(a => a.replace("--", ""));
 if (!harnesses.length) harnesses = detect(targetDir);
 
-console.log("\n  SIFU — DNA-First Framework (v5)\n");
+console.log("\n  SIFU — DNA-First Framework (0.1.0)\n");
 console.log(`  Target: ${targetDir}`);
 console.log(`  Harness: ${harnesses.join(", ")}\n`);
 

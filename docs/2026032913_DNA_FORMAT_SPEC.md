@@ -3,7 +3,7 @@ branch: main
 commit: aef8d7a
 ---
 
-# DNA Format Specification (v5)
+# DNA Format Specification
 
 > Canonical reference for `.dna.md` sidecar format, ID generation, and append-only rules.
 > Linked from `CLAUDE.md`. All agents MUST follow this spec.

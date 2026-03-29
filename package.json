@@ -1,6 +1,6 @@
 {
   "name": "sifu-init",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "DNA-first framework for agentic development.",
   "bin": {
     "sifu-init": "sifu-init.js",
@@ -19,10 +19,9 @@
     "agentic"
   ],
   "license": "MIT",
-  "author": "AI4Science-WestlakeU",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AI4Science-WestlakeU/SIFU.git"
+    "url": ""
   },
   "main": "sifu-cli.js",
   "directories": {
@@ -32,10 +31,6 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "bugs": {
-    "url": "https://github.com/AI4Science-WestlakeU/SIFU/issues"
-  },
-  "homepage": "https://github.com/AI4Science-WestlakeU/SIFU#readme",
   "devDependencies": {
     "vitest": "^4.1.2"
   }
