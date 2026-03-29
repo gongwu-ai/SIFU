@@ -1,11 +1,11 @@
 /**
- * SIFU CLI (0.2.0)
+ * SIFU CLI (0.3.0)
  *
- * Commands: check, status, new, read, sync, hash
+ * Commands: log, deprecate, check, status, new, read, sync, hash, init
  * Zero dependencies — pure Node.js.
  *
  * DNA format: hidden sidecars `.{filename}.dna.md` with 5-column table.
- * IDs: [DNA-<hash8>] content-addressed via sha256(filepath|timestamp|before_hash).
+ * IDs: hash8 content-addressed via sha256(filepath|timestamp|before_hash).
  */
 
 import fs from "node:fs";
@@ -26,7 +26,6 @@ interface Frontmatter {
   file?: string;
   purpose?: string;
   last?: string;
-  entries?: string;
   [key: string]: string | undefined;
 }
 
@@ -48,11 +47,6 @@ interface SafePathResult {
   absFile: string;
   relFile: string;
   root: string;
-}
-
-interface ParsedDna {
-  frontmatter: Frontmatter;
-  entries: DnaEntry[];
 }
 
 // ─── Exemption logic ────────────────────────────────────────────
@@ -85,8 +79,6 @@ const ALWAYS_EXEMPT: Set<string> = new Set([".sifuignore"]);
  *   - Lines starting with `*.`      -> extension exemptions
  *   - Lines with `*` elsewhere      -> prefix glob (e.g. `.env.*` matches `.env.prod`)
  *   - Everything else               -> exact filename exemptions
- * @param content - raw .sifuignore file content
- * @returns parsed exemption rules
  */
 function parseSifuIgnore(content: string): Exemptions {
   const dirs = new Set<string>();
@@ -101,7 +93,6 @@ function parseSifuIgnore(content: string): Exemptions {
     } else if (line.startsWith("*.")) {
       extensions.add("." + line.slice(2));
     } else if (line.includes("*")) {
-      // Prefix glob: ".env.*" matches ".env.prod", ".env.local", etc.
       const prefix = line.substring(0, line.indexOf("*"));
       prefixes.push(prefix);
     } else {
@@ -111,11 +102,6 @@ function parseSifuIgnore(content: string): Exemptions {
   return { dirs, extensions, filenames, prefixes };
 }
 
-/**
- * Loads exemption rules. Reads .sifuignore if present, otherwise uses hardcoded defaults.
- * @param root - project root directory
- * @returns parsed exemption rules
- */
 function loadExemptions(root: string): Exemptions {
   const ignorePath = path.join(root, ".sifuignore");
   try {
@@ -131,18 +117,12 @@ function loadExemptions(root: string): Exemptions {
   }
 }
 
-// Lazy-loaded per invocation
 let _exemptions: Exemptions | null = null;
 function getExemptions(): Exemptions {
   if (!_exemptions) _exemptions = loadExemptions(process.cwd());
   return _exemptions;
 }
 
-/**
- * Determines if a file needs a .dna.md sidecar.
- * @param relPath - path relative to project root
- * @returns true if the file needs a DNA sidecar
- */
 function needsDna(relPath: string): boolean {
   if (relPath.endsWith(".dna.md")) return false;
   const name = path.basename(relPath);
@@ -156,12 +136,6 @@ function needsDna(relPath: string): boolean {
   return true;
 }
 
-/**
- * Returns the hidden .dna.md sidecar path for a given file path.
- * e.g., "src/foo.js" -> "src/.foo.js.dna.md"
- * @param filePath - path to the source file
- * @returns path to the corresponding DNA sidecar
- */
 function dnaPath(filePath: string): string {
   const dir = path.dirname(filePath);
   const name = path.basename(filePath);
@@ -170,43 +144,45 @@ function dnaPath(filePath: string): string {
 
 // ─── Path safety ────────────────────────────────────────────────
 
-/**
- * Resolves a file path, validates it is within the project root,
- * and returns { absFile, relFile } with POSIX-normalized relFile.
- * Exits with error if path escapes project root.
- * @param file - user-provided file path
- * @returns resolved path info
- */
 function safePath(file: string): SafePathResult {
   const root = process.cwd();
   const absFile = path.resolve(file);
   const relFile = path.relative(root, absFile).replace(/\\/g, "/");
-  if (relFile.startsWith("..")) {
+  if (relFile.startsWith("../") || relFile === "..") {
     console.error(`Error: path escapes project root: ${file}`);
     process.exit(1);
+  }
+  if (relFile.endsWith(".dna.md")) {
+    console.error(`Error: cannot target .dna.md files directly: ${file}`);
+    process.exit(1);
+  }
+  try {
+    const stat = fs.lstatSync(absFile);
+    if (stat.isDirectory()) {
+      console.error(`Error: target is a directory: ${file}`);
+      process.exit(1);
+    }
+    if (stat.isSymbolicLink()) {
+      const real = fs.realpathSync(absFile);
+      const realRel = path.relative(root, real);
+      if (realRel.startsWith("..")) {
+        console.error(`Error: symlink resolves outside project root: ${file}`);
+        process.exit(1);
+      }
+    }
+  } catch {
+    // File doesn't exist yet — OK for new files
   }
   return { absFile, relFile, root };
 }
 
 // ─── Hash8 DNA ID generation ────────────────────────────────────
 
-/**
- * Generates a content-addressed DNA hash8 ID.
- * @param filePath - relative path to the tracked file
- * @param timestamp - POSIX timestamp string
- * @param beforeHash - sha256 of file content before change (or empty-string hash)
- * @returns 8-char hex hash
- */
 function generateHash8(filePath: string, timestamp: string, beforeHash: string): string {
   const input = `${filePath}|${timestamp}|${beforeHash}`;
   return crypto.createHash("sha256").update(input).digest("hex").substring(0, 8);
 }
 
-/**
- * Computes sha256 of a file's content, or of empty string if file doesn't exist.
- * @param absPath - absolute path to the file
- * @returns hex sha256
- */
 function fileHash(absPath: string): string {
   try {
     const content = fs.readFileSync(absPath);
@@ -214,6 +190,74 @@ function fileHash(absPath: string): string {
   } catch {
     return crypto.createHash("sha256").update("").digest("hex");
   }
+}
+
+// ─── Timestamp (ms precision for multi-agent) ───────────────────
+
+/**
+ * Returns a compact ms-precision timestamp: YYYYMMDDHHmmssSSS±HHMM
+ * Example: 20260329163012123+0800
+ * Ms precision prevents hash8 collisions in multi-agent coworking.
+ */
+function getTimestamp(): string {
+  const now = new Date();
+  const p = (n: number, w: number) => String(n).padStart(w, "0");
+  const offset = -now.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const absOff = Math.abs(offset);
+  return (
+    `${now.getFullYear()}${p(now.getMonth() + 1, 2)}${p(now.getDate(), 2)}` +
+    `${p(now.getHours(), 2)}${p(now.getMinutes(), 2)}${p(now.getSeconds(), 2)}` +
+    `${p(now.getMilliseconds(), 3)}${sign}${p(Math.floor(absOff / 60), 2)}${p(absOff % 60, 2)}`
+  );
+}
+
+// ─── Cell escaping ──────────────────────────────────────────────
+
+/** Escapes pipe and newline chars so they don't break table parsing. */
+function escapeCell(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ").trim();
+}
+
+/** Reverses escapeCell. */
+function unescapeCell(s: string): string {
+  return s.replace(/\\\|/g, "|").replace(/\\\\/g, "\\");
+}
+
+/**
+ * Splits a markdown table row into cells, respecting \| escapes.
+ * Strips leading/trailing pipes.
+ */
+function parseTableRow(row: string): string[] {
+  const trimmed = row.trim();
+  const cells: string[] = [];
+  let current = "";
+  let i = trimmed.startsWith("|") ? 1 : 0;
+  while (i < trimmed.length) {
+    if (trimmed[i] === "\\" && i + 1 < trimmed.length) {
+      current += trimmed[i] + trimmed[i + 1];
+      i += 2;
+    } else if (trimmed[i] === "|") {
+      const cell = current.trim();
+      if (cell) cells.push(cell);
+      current = "";
+      i++;
+    } else {
+      current += trimmed[i];
+      i++;
+    }
+  }
+  const last = current.trim();
+  if (last) cells.push(last);
+  return cells;
+}
+
+// ─── Arg parsing helper ─────────────────────────────────────────
+
+function getArg(args: string[], flag: string): string | undefined {
+  const idx = args.indexOf(flag);
+  if (idx >= 0 && idx + 1 < args.length) return args[idx + 1];
+  return undefined;
 }
 
 // ─── Walk directory ─────────────────────────────────────────────
@@ -237,17 +281,11 @@ function walk(dir: string, root: string, results: WalkResult[]): WalkResult[] {
 
 // ─── DNA file parsing ───────────────────────────────────────────
 
-/**
- * Parses a .dna.md file into frontmatter + entries.
- * @param dnaFilePath - path to the DNA sidecar file
- * @returns parsed frontmatter and entry list
- */
-function parseDna(dnaFilePath: string): ParsedDna {
+function parseDna(dnaFilePath: string): { frontmatter: Frontmatter; entries: DnaEntry[] } {
   const content = fs.readFileSync(dnaFilePath, "utf-8");
   const fm: Frontmatter = {};
   const entries: DnaEntry[] = [];
 
-  // Parse frontmatter
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (fmMatch) {
     for (const line of fmMatch[1].split("\n")) {
@@ -256,7 +294,6 @@ function parseDna(dnaFilePath: string): ParsedDna {
     }
   }
 
-  // Parse table rows (skip header + separator)
   const lines = content.split("\n");
   let inTable = false;
   for (const line of lines) {
@@ -264,11 +301,14 @@ function parseDna(dnaFilePath: string): ParsedDna {
     if (trimmed.startsWith("| ID")) { inTable = true; continue; }
     if (trimmed.startsWith("|----") || trimmed.startsWith("|-")) { continue; }
     if (inTable && trimmed.startsWith("|")) {
-      const cells = trimmed.split("|").map((s) => s.trim()).filter(Boolean);
+      const cells = parseTableRow(trimmed);
       if (cells.length >= 5) {
         entries.push({
-          id: cells[0], time: cells[1], agent: cells[2],
-          act: cells[3], rationale: cells[4],
+          id: unescapeCell(cells[0]),
+          time: unescapeCell(cells[1]),
+          agent: unescapeCell(cells[2]),
+          act: unescapeCell(cells[3]),
+          rationale: unescapeCell(cells[4]),
         });
       }
     }
@@ -277,7 +317,117 @@ function parseDna(dnaFilePath: string): ParsedDna {
   return { frontmatter: fm, entries };
 }
 
+// ─── Core: insert DNA entry ─────────────────────────────────────
+
+/**
+ * Inserts a DNA entry into a file's .dna.md sidecar.
+ * Creates the sidecar if it doesn't exist.
+ * Returns the generated hash8 ID.
+ */
+function insertDnaEntry(
+  file: string, act: string, rationale: string,
+  agent: string, purpose?: string,
+): string {
+  const { absFile, relFile, root } = safePath(file);
+
+  if (!needsDna(relFile)) {
+    console.log(`  ${relFile} is exempt (.sifuignore) — skip`);
+    return "";
+  }
+
+  const ts = getTimestamp();
+  const bHash = fileHash(absFile);
+  const id = generateHash8(relFile, ts, bHash);
+  const dna = dnaPath(absFile);
+  const relDna = path.relative(root, dna);
+
+  const escapedAct = escapeCell(act);
+  const escapedRationale = escapeCell(rationale);
+  const newRow = `| ${id} | ${ts} | ${agent} | ${escapedAct} | ${escapedRationale} |`;
+
+  if (fs.existsSync(dna)) {
+    let content = fs.readFileSync(dna, "utf-8");
+    // Insert new row after separator line
+    content = content.replace(/^(\|-[-|\s]*\|)$/m, `$1\n${newRow}`);
+    // Update frontmatter last
+    if (content.includes("last:")) {
+      content = content.replace(/^last:.*$/m, `last: ${id} @ ${ts}`);
+    }
+    fs.writeFileSync(dna, content);
+    console.log(`  \x1b[32m+\x1b[0m ${relDna} — ${id}`);
+  } else {
+    const effectivePurpose = (purpose || rationale).replace(/\n/g, " ").trim();
+    const content = [
+      "---",
+      `file: ${relFile}`,
+      `purpose: ${effectivePurpose}`,
+      `last: ${id} @ ${ts}`,
+      "---",
+      "",
+      "| ID | Time | Agent | Act | Rationale |",
+      "|----|------|-------|-----|-----------|",
+      newRow,
+      "",
+    ].join("\n");
+    fs.mkdirSync(path.dirname(dna), { recursive: true });
+    fs.writeFileSync(dna, content);
+    console.log(`  \x1b[32m+\x1b[0m ${relDna} — ${id} (created)`);
+  }
+
+  return id;
+}
+
 // ─── Commands ───────────────────────────────────────────────────
+
+function cmdLog(args: string[]): void {
+  const file = args[0];
+  if (!file) {
+    console.log('Usage: sifu log <file> --act "..." --rationale "..." [--agent name] [--purpose "..."]');
+    process.exit(1);
+  }
+  const act = getArg(args, "--act");
+  const rationale = getArg(args, "--rationale");
+  const agent = getArg(args, "--agent") || "agent";
+  const purpose = getArg(args, "--purpose");
+
+  if (!act) { console.error("Error: --act is required"); process.exit(1); }
+  if (!rationale) { console.error("Error: --rationale is required"); process.exit(1); }
+
+  insertDnaEntry(file, act, rationale, agent, purpose);
+}
+
+function cmdDeprecate(args: string[]): void {
+  const file = args[0];
+  const oldId = args[1];
+  if (!file || !oldId) {
+    console.log('Usage: sifu deprecate <file> <old_id> --rationale "..." [--agent name]');
+    process.exit(1);
+  }
+  const rationale = getArg(args, "--rationale");
+  const agent = getArg(args, "--agent") || "agent";
+
+  if (!rationale) { console.error("Error: --rationale is required"); process.exit(1); }
+  if (!/^[0-9a-f]{8}$/.test(oldId)) {
+    console.error(`Error: invalid ID format (expected 8 hex chars): ${oldId}`);
+    process.exit(1);
+  }
+
+  const { absFile } = safePath(file);
+  const dna = dnaPath(absFile);
+
+  if (!fs.existsSync(dna)) {
+    console.error(`Error: no .dna.md for ${file}`);
+    process.exit(1);
+  }
+
+  const { entries } = parseDna(dna);
+  if (!entries.find((e) => e.id === oldId)) {
+    console.error(`Error: ID ${oldId} not found in ${path.basename(dna)}`);
+    process.exit(1);
+  }
+
+  insertDnaEntry(file, `deprecated ${oldId}`, rationale, agent);
+}
 
 function cmdCheck(strict: boolean): void {
   const root = process.cwd();
@@ -310,21 +460,22 @@ function cmdNew(file: string | undefined): void {
 
   if (fs.existsSync(dna)) { console.log(`${path.relative(root, dna)} already exists.`); process.exit(0); }
 
-  const ts = new Date().toISOString().replace(/[-:T]/g, "").substring(0, 12) + "+0000";
+  const ts = getTimestamp();
   const bHash = fileHash(absFile);
   const id = generateHash8(relFile, ts, bHash);
 
-  const content = `---
-file: ${relFile}
-purpose:
-last: ${id} @ ${ts}
-entries: 1
----
-
-| ID | Time | Agent | Act | Rationale |
-|----|------|-------|-----|-----------|
-| ${id} | ${ts} | cli | initial creation | created by sifu new |
-`;
+  const content = [
+    "---",
+    `file: ${relFile}`,
+    "purpose:",
+    `last: ${id} @ ${ts}`,
+    "---",
+    "",
+    "| ID | Time | Agent | Act | Rationale |",
+    "|----|------|-------|-----|-----------|",
+    `| ${id} | ${ts} | cli | initial creation | created by sifu new |`,
+    "",
+  ].join("\n");
 
   fs.mkdirSync(path.dirname(dna), { recursive: true });
   fs.writeFileSync(dna, content);
@@ -354,7 +505,7 @@ function cmdRead(file: string | undefined, n: number): void {
   console.log("| ID | Time | Agent | Act | Rationale |");
   console.log("|----|------|-------|-----|-----------|");
   for (const e of show) {
-    console.log(`| ${e.id} | ${e.time} | ${e.agent} | ${e.act} | ${e.rationale} |`);
+    console.log(`| ${e.id} | ${e.time} | ${e.agent} | ${escapeCell(e.act)} | ${escapeCell(e.rationale)} |`);
   }
   if (n !== Infinity && entries.length > n) {
     console.log(`\n... ${entries.length - n} more entries. Use --all to see all.`);
@@ -375,25 +526,25 @@ function cmdSync(): void {
 
     const newest = entries[0];
     const expectedLast = `${newest.id} @ ${newest.time}`;
-    const expectedEntries = String(entries.length);
 
-    if (frontmatter.last === expectedLast && frontmatter.entries === expectedEntries) continue;
+    const hasLegacyEntries = /^entries:.*$/m.test(content);
+    if (frontmatter.last === expectedLast && !hasLegacyEntries) continue;
 
-    // Update frontmatter
     let newContent = content;
-    if (frontmatter.last !== undefined) {
-      newContent = newContent.replace(/^last:.*$/m, `last: ${expectedLast}`);
-    } else {
-      newContent = newContent.replace(/^(purpose:.*)$/m, `$1\nlast: ${expectedLast}`);
+    if (frontmatter.last !== expectedLast) {
+      if (frontmatter.last !== undefined) {
+        newContent = newContent.replace(/^last:.*$/m, `last: ${expectedLast}`);
+      } else {
+        newContent = newContent.replace(/^(purpose:.*)$/m, `$1\nlast: ${expectedLast}`);
+      }
     }
-    if (frontmatter.entries !== undefined) {
-      newContent = newContent.replace(/^entries:.*$/m, `entries: ${expectedEntries}`);
-    } else {
-      newContent = newContent.replace(/^(last:.*)$/m, `$1\nentries: ${expectedEntries}`);
-    }
+    // Remove legacy entries field if present
+    newContent = newContent.replace(/^entries:.*\n/m, "");
 
-    fs.writeFileSync(f.dnaFull, newContent);
-    updated++;
+    if (newContent !== content) {
+      fs.writeFileSync(f.dnaFull, newContent);
+      updated++;
+    }
   }
 
   console.log(`Synced frontmatter for ${updated} .dna.md files.`);
@@ -402,7 +553,7 @@ function cmdSync(): void {
 function cmdHash(file: string | undefined): void {
   if (!file) { console.log("Usage: sifu hash <file>"); process.exit(1); }
   const { absFile, relFile } = safePath(file);
-  const ts = new Date().toISOString().replace(/[-:T]/g, "").substring(0, 12) + "+0000";
+  const ts = getTimestamp();
   const bHash = fileHash(absFile);
   const id = generateHash8(relFile, ts, bHash);
   console.log(`File:      ${relFile}`);
@@ -425,9 +576,11 @@ switch (cmd) {
     );
     break;
   }
-  case "check":  cmdCheck(args.includes("--strict")); break;
-  case "status": cmdStatus(); break;
-  case "new":    cmdNew(args[1]); break;
+  case "log":       cmdLog(args.slice(1)); break;
+  case "deprecate": cmdDeprecate(args.slice(1)); break;
+  case "check":     cmdCheck(args.includes("--strict")); break;
+  case "status":    cmdStatus(); break;
+  case "new":       cmdNew(args[1]); break;
   case "read": {
     const file = args[1];
     const allFlag = args.includes("--all");
@@ -436,17 +589,24 @@ switch (cmd) {
     cmdRead(file, n);
     break;
   }
-  case "sync":   cmdSync(); break;
-  case "hash":   cmdHash(args[1]); break;
+  case "sync":      cmdSync(); break;
+  case "hash":      cmdHash(args[1]); break;
   default:
-    console.log("SIFU CLI (0.2.0)\n");
-    console.log("  sifu init             Install SIFU in current project");
-    console.log("  sifu check            List files missing .dna.md");
-    console.log("  sifu status           Show DNA coverage stats");
-    console.log("  sifu new <file>       Create .dna.md template with hash8 ID");
-    console.log("  sifu read <file>      Show top 10 DNA entries (newest first)");
-    console.log("  sifu read <f> -n 20   Show top 20 entries");
-    console.log("  sifu read <f> --all   Show all entries");
-    console.log("  sifu sync             Update frontmatter caches (last, entries)");
-    console.log("  sifu hash <file>      Generate a DNA hash8 ID for a file");
+    console.log("SIFU CLI (0.3.0)\n");
+    console.log("  sifu log <file> --act \"...\" --rationale \"...\"");
+    console.log("                            Insert DNA entry (primary workflow)");
+    console.log("  sifu deprecate <file> <id> --rationale \"...\"");
+    console.log("                            Mark an entry as deprecated");
+    console.log("  sifu check                List files missing .dna.md");
+    console.log("  sifu status               Show DNA coverage stats");
+    console.log("  sifu new <file>           Create .dna.md template");
+    console.log("  sifu read <file>          Show top 10 DNA entries (newest first)");
+    console.log("  sifu read <f> --all       Show all entries");
+    console.log("  sifu sync                 Update frontmatter caches");
+    console.log("  sifu hash <file>          Generate a DNA hash8 ID");
+    console.log("  sifu init                 Install SIFU in current project\n");
+    console.log("Options:");
+    console.log("  --agent <name>            Agent identity (default: agent)");
+    console.log("  --purpose <text>          File purpose (for new sidecars)");
+    console.log("  --strict                  Exit 1 if files missing DNA (CI)");
 }

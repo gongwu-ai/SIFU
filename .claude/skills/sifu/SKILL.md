@@ -1,6 +1,6 @@
 ---
 name: sifu
-description: "SIFU DNA-first framework. BINDING rules for all file write/create/update operations. Every authored file needs a hidden .dna.md sidecar with decision rationale BEFORE code changes. Triggers on Write, Edit, Create, Bash(sed/tee/cat/>), StrReplace, write_file, replace."
+description: "SIFU DNA-first framework. BINDING rules for all file write/create/update operations. Every non-exempt authored file (not just code — .md, .json, .yaml, configs, docs too) needs a hidden .dna.md sidecar with decision rationale BEFORE code changes. Triggers on Write, Edit, Create, Bash(sed/tee/cat/>), StrReplace, write_file, replace."
 user-invocable: true
 ---
 
@@ -14,6 +14,8 @@ user-invocable: true
 **DNA before code. Always.**
 
 Every authored file has a hidden `.dna.md` sidecar recording WHAT changed and WHY. Code is disposable phenotype; decision rationale is the genotype that persists.
+
+**"Authored file" means every non-exempt file** — `.js`, `.ts`, `.py`, `.md`, `.json`, `.yaml`, config files, documentation, scripts. Not just code. Check `.sifuignore` for the only exceptions.
 
 ## BINDING Rules
 
@@ -41,8 +43,7 @@ Convention: `.{filename}.dna.md` (dot-prefix, next to the file).
 ---
 file: src/foo.js
 purpose: HTTP client wrapper — retry logic, timeout, auth header injection
-last: c3d4e5f6 @ 202603291530+0800
-entries: 3
+last: c3d4e5f6 @ 20260329153012123+0800
 ---
 
 | ID | Time | Agent | Act | Rationale |
@@ -59,7 +60,7 @@ entries: 3
 | Column | Description |
 |--------|-------------|
 | **ID** | 8-char hex hash (see Rule 5) |
-| **Time** | From `date +%Y%m%d%H%M%z`. Never fabricate. |
+| **Time** | Compact timestamp. CLI uses ms precision. Manual: `date +%Y%m%d%H%M%S%z`. Never fabricate. |
 | **Agent** | Who: `opus`, `sonnet`, `haiku`, `human`, agent name |
 | **Act** | What was done — imperative form |
 | **Rationale** | Why it was done — the decision reasoning |
@@ -94,8 +95,7 @@ new_string: |----|------|-------|-----|-----------|
 |-------|--------------|------------|
 | `file` | Agent at creation | Immutable |
 | `purpose` | Agent | Semi-stable (update when role changes) |
-| `last` | `sifu-cli sync` | Auto-updated cache |
-| `entries` | `sifu-cli sync` | Auto-updated cache |
+| `last` | `sifu log` / `sifu sync` | Auto-updated cache |
 
 **Frontmatter IS mutable** (metadata). Table rows are insert-only (DNA).
 
@@ -109,12 +109,35 @@ Common exemptions: `.git/`, `.claude/`, `node_modules/`, `dist/`, `*.lock`, `*.p
 
 ## Workflow
 
-1. `date +%Y%m%d%H%M%z` — get real timestamp
+### Primary (with CLI — preferred)
+
+```bash
+sifu log <file> --act "..." --rationale "..." --agent <name> [--purpose "..."]
+```
+
+One command handles: timestamp, hash8, sidecar creation/update, frontmatter.
+Then edit the code file.
+
+### Fallback (manual Edit — when no CLI/Bash access)
+
+1. `date +%Y%m%d%H%M%S%z` — get real timestamp
 2. Compute before_hash: `sha256(file_content)` or `sha256("")` for new files
 3. Generate ID: `sha256(filepath|timestamp|before_hash).substring(0,8)`
 4. If `.dna.md` missing → create with frontmatter + header + first entry
 5. If `.dna.md` exists → insert new row at TOP after header
 6. NOW edit the code file
+
+## DNA Conflict Resolution (Merge)
+
+SIFU does not manage git merges — that is the harness's job. But DNA's insert-only format makes conflicts trivially resolvable:
+
+1. **Keep ALL entries from both sides** — never discard an entry during merge
+2. **Sort by timestamp, newest first** — compare the Time column
+3. **Frontmatter**: take the `last` with the newer timestamp
+4. **Run `sifu sync`** after merge to fix frontmatter caches
+5. **Redundant entries are acceptable** — insert-only means duplicates are harmless
+
+DNA conflicts only arise when two agents modify the same file's sidecar simultaneously. Both entries are valid decisions — the correct resolution is always to keep both.
 
 ## Progressive Delivery (Reading DNA)
 
@@ -130,9 +153,13 @@ Or use CLI: `sifu read <file>` (top 10), `sifu read <file> -n 20`, `sifu read <f
 ## CLI Commands
 
 ```bash
+sifu log <file> --act "..." --rationale "..." [--agent name]
+                      # Insert DNA entry (primary workflow)
+sifu deprecate <file> <id> --rationale "..."
+                      # Mark an entry as deprecated
 sifu check            # List files missing .dna.md
 sifu status           # DNA coverage stats
-sifu new <file>       # Create .dna.md template with hash8 ID
+sifu new <file>       # Create .dna.md template
 sifu read <file>      # Top 10 entries (newest first)
 sifu sync             # Update frontmatter caches
 sifu hash <file>      # Generate DNA hash8 ID

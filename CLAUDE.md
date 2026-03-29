@@ -87,7 +87,7 @@ Summary:
 | **Format** | 5-column table: `ID \| Time \| Agent \| Act \| Rationale` |
 | **Ordering** | Newest-first. Insert at top after header row. |
 | **Immutability** | Table rows are insert-only. Never modify, delete, or reorder existing rows. |
-| **Frontmatter** | Mutable metadata: `file`, `purpose` (agent), `last`, `entries` (CLI auto) |
+| **Frontmatter** | Mutable metadata: `file`, `purpose` (agent), `last` (`sifu log` / `sifu sync` auto) |
 | **Enforcement** | Soft — via SKILL instructions. No pre-hook hard enforcement. |
 
 ## Open Questions: Agent Trust

@@ -28,8 +28,7 @@ A `.dna.md` file has two zones: **frontmatter** (mutable metadata) and **table**
 ---
 file: src/foo.js
 purpose: HTTP client wrapper — retry logic, timeout, auth header injection
-last: c3d4e5f6 @ 202603291530+0800
-entries: 3
+last: c3d4e5f6 @ 20260329153012123+0800
 ---
 
 | ID | Time | Agent | Act | Rationale |
@@ -47,21 +46,20 @@ entries: 3
 |-------|-----------|------------|-------------|
 | `file` | Immutable | Agent (at creation) | Relative path to the tracked file |
 | `purpose` | Semi-stable | Agent | One-line description of what the file does and why it exists |
-| `last` | Auto-updated | `sifu-cli sync` | Most recent entry ID + timestamp. Cache for Level 0 reads |
-| `entries` | Auto-updated | `sifu-cli sync` | Count of DNA entries. Cache for Level 0 reads |
+| `last` | Auto-updated | `sifu log` / `sifu sync` | Most recent entry ID + timestamp. Cache for Level 0 reads |
 
 ### Rules
 
-- **Frontmatter IS mutable.** Agents may update `purpose` when a file's role changes. `last` and `entries` are maintained by `sifu-cli sync`.
-- **`purpose` is mandatory.** Every `.dna.md` must have a `purpose` at creation time. This enables Level 0 progressive delivery (scan 100 files by frontmatter alone).
-- **`last` and `entries` are caches, not source of truth.** The table rows are authoritative. Stale caches affect Level 0 precision, not correctness.
+- **Frontmatter IS mutable.** Agents may update `purpose` when a file's role changes. `last` is maintained by `sifu log` and `sifu sync`.
+- **`purpose` is mandatory.** Every `.dna.md` must have a `purpose` at creation time. `sifu log` auto-fills from `--rationale` when `--purpose` is not given.
+- **`last` is a cache, not source of truth.** The table rows are authoritative. Stale caches affect Level 0 precision, not correctness.
 
 ## 4. Table Format (5 Columns)
 
 | Column | Description |
 |--------|-------------|
 | **ID** | 8-char hex hash — globally unique, content-addressed (see Section 5) |
-| **Time** | POSIX timestamp from `date +%Y%m%d%H%M%z`. Never fabricated. |
+| **Time** | Compact timestamp. CLI uses ms precision `YYYYMMDDHHmmssSSS±HHMM` for multi-agent safety. Manual: `date +%Y%m%d%H%M%S%z`. Never fabricated. |
 | **Agent** | Who made this change (e.g., `opus`, `sonnet`, `human`, agent name) |
 | **Act** | What was done — action description in imperative form |
 | **Rationale** | Why it was done — the decision reasoning |
@@ -87,7 +85,7 @@ dna_id = hash.substring(0, 8)
 | Component | Value |
 |-----------|-------|
 | `file_path` | Relative path to the tracked file (e.g., `src/foo.js`) |
-| `timestamp` | POSIX timestamp string from `date +%Y%m%d%H%M%z` |
+| `timestamp` | Compact timestamp string. CLI: ms precision `YYYYMMDDHHmmssSSS±HHMM`. Manual: `date +%Y%m%d%H%M%S%z` |
 | `before_hash` | SHA-256 of the file's content **before** this change. If file does not exist yet: `sha256("")` = `e3b0c44298fc1c14...` (empty string hash) |
 
 ### Properties
@@ -100,7 +98,9 @@ dna_id = hash.substring(0, 8)
 ### CLI Generation
 
 ```bash
-node sifu-cli.js new src/foo.js    # generates src/.foo.js.dna.md with hash8 ID
+sifu log src/foo.js --act "initial creation" --rationale "need HTTP client" --agent opus
+# or for template only:
+sifu new src/foo.js
 ```
 
 ## 6. Insert-Only Rules (Newest First)
@@ -114,7 +114,7 @@ These apply to the **table zone** (below frontmatter). **All are BINDING.**
 | No delete | Never remove any row. |
 | No modify | Never change any existing row's content. |
 | No reorder | Never move existing rows. |
-| Deprecation | Insert a NEW row at top with Act = `deprecated <ID>` and Rationale = why. |
+| Deprecation | Insert a NEW row at top with Act = `deprecated <ID>` and Rationale = why. CLI: `sifu deprecate <file> <id> --rationale "..."` |
 
 ### Edit Tool Pattern
 
@@ -152,7 +152,7 @@ The installer also ensures `.gitignore` has `!.*.dna.md` and `!**/.*.dna.md` neg
 Agents reading DNA should follow this strategy to minimize context consumption:
 
 ```
-Level 0: Read frontmatter only (purpose + last + entries)
+Level 0: Read frontmatter only (purpose + last)
          -> Decide relevance. Skip irrelevant files.
 
 Level 1: Read frontmatter + top 3 data rows (most recent)
@@ -169,10 +169,33 @@ For bulk scanning (many files): Level 0 on all files, then Level 1+ only on rele
 
 ## 9. Workflow Summary
 
-1. Run `date +%Y%m%d%H%M%z` — get real timestamp
+### Primary (with CLI)
+
+```bash
+sifu log <file> --act "..." --rationale "..." --agent <name>
+# then edit the code file
+```
+
+CLI handles timestamp, hash8, sidecar creation/update, and frontmatter — one command.
+
+### Fallback (manual, when CLI/Bash unavailable)
+
+1. Run `date +%Y%m%d%H%M%S%z` — get real timestamp
 2. Determine `before_hash` — hash of file content before change (or empty-string hash for new files)
 3. Generate DNA ID: `sha256(filepath|timestamp|before_hash).substring(0,8)`
 4. If `.dna.md` doesn't exist: create it with frontmatter + table header + first entry
 5. If `.dna.md` exists: insert new table row at TOP (after header separator)
 6. Now edit the code file
-7. Optionally run `sifu-cli sync` to update frontmatter caches
+7. Optionally run `sifu sync` to update frontmatter caches
+
+## 10. Cell Escaping
+
+When writing act or rationale text that contains pipe `|` or backslash `\` characters, they must be escaped to preserve table structure:
+
+| Char | Escaped |
+|------|---------|
+| `\|` | `\\|` |
+| `\\` | `\\\\` |
+| newline | (replaced with space) |
+
+`sifu log` handles escaping automatically. `sifu read` unescapes for display.
