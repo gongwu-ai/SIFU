@@ -138,13 +138,13 @@ sifu read src/foo.js --all    # show all entries
 Only auto-generated, binary, and tool-internal files are exempt.
 
 **Directories** (skip entire subtree):
-`.git/`, `.claude/`, `.cursor/`, `.codex/`, `.opencode/`, `.github/`, `.venv/`, `__pycache__/`, `node_modules/`, `dist/`, `build/`, `.next/`, `.nuxt/`, `.windsurf/`, `.agent/`
+`.git/`, `.claude/`, `.cursor/`, `.codex/`, `.opencode/`, `.github/`, `.gemini/`, `.venv/`, `__pycache__/`, `node_modules/`, `dist/`, `build/`, `.next/`, `.nuxt/`, `.windsurf/`, `.agent/`
 
 **Extensions:**
 `.lock`, `.pyc`, `.pyo`, `.pyd`, `.so`, `.dll`, `.dylib`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.ico`, `.webp`, `.pdf`, `.zip`, `.tar`, `.gz`, `.bz2`, `.woff`, `.woff2`, `.ttf`, `.eot`, `.mp3`, `.mp4`, `.wav`, `.avi`, `.log`
 
 **Filenames** (exact match):
-`.gitignore`, `.claudeignore`, `.env`, `.env.local`, `__init__.py`, `LICENSE`
+`.gitignore`, `.claudeignore`, `.env`, `.env.local`, `__init__.py`, `LICENSE`, `package-lock.json`
 
 **Everything else needs DNA** — including `.py`, `.js`, `.ts`, `.go`, `.rs`, `.sh`, `.md`, `.json`, `.yaml`, `.toml`, `.txt`, config files, documentation, scripts.
 

@@ -16,7 +16,7 @@ const crypto = require("node:crypto");
 // ─── Exemption logic ────────────────────────────────────────────
 
 const EXEMPT_DIRS = new Set([
-  ".git", ".claude", ".cursor", ".codex", ".opencode", ".github",
+  ".git", ".claude", ".cursor", ".codex", ".opencode", ".github", ".gemini",
   ".venv", "__pycache__", "node_modules", "dist", "build", ".next", ".nuxt",
   ".windsurf", ".agent",
 ]);
@@ -31,7 +31,7 @@ const EXEMPT_EXTENSIONS = new Set([
 
 const EXEMPT_FILENAMES = new Set([
   ".gitignore", ".claudeignore", ".env", ".env.local",
-  "__init__.py", "LICENSE",
+  "__init__.py", "LICENSE", "package-lock.json",
 ]);
 
 /**
