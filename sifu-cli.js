@@ -118,6 +118,26 @@ function dnaPath(filePath) {
   return path.join(dir, `.${name}.dna.md`);
 }
 
+// ─── Path safety ────────────────────────────────────────────────
+
+/**
+ * Resolves a file path, validates it is within the project root,
+ * and returns { absFile, relFile } with POSIX-normalized relFile.
+ * Exits with error if path escapes project root.
+ * @param {string} file - user-provided file path
+ * @returns {{ absFile: string, relFile: string, root: string }}
+ */
+function safePath(file) {
+  const root = process.cwd();
+  const absFile = path.resolve(file);
+  const relFile = path.relative(root, absFile).replace(/\\/g, "/");
+  if (relFile.startsWith("..")) {
+    console.error(`Error: path escapes project root: ${file}`);
+    process.exit(1);
+  }
+  return { absFile, relFile, root };
+}
+
 // ─── Hash8 DNA ID generation ────────────────────────────────────
 
 /**
@@ -234,9 +254,7 @@ function cmdStatus() {
 
 function cmdNew(file) {
   if (!file) { console.log("Usage: sifu new <file>"); process.exit(1); }
-  const absFile = path.resolve(file);
-  const root = process.cwd();
-  const relFile = path.relative(root, absFile);
+  const { absFile, relFile, root } = safePath(file);
   const dna = dnaPath(absFile);
 
   if (fs.existsSync(dna)) { console.log(`${path.relative(root, dna)} already exists.`); process.exit(0); }
@@ -266,9 +284,8 @@ entries: 1
 
 function cmdRead(file, n) {
   if (!file) { console.log("Usage: sifu read <file> [-n NUM] [--all]"); process.exit(1); }
-  const absFile = path.resolve(file);
+  const { absFile, root } = safePath(file);
   const dna = dnaPath(absFile);
-  const root = process.cwd();
 
   if (!fs.existsSync(dna)) {
     console.log(`No .dna.md for ${path.relative(root, absFile)}`);
@@ -333,9 +350,7 @@ function cmdSync() {
 
 function cmdHash(file) {
   if (!file) { console.log("Usage: sifu hash <file>"); process.exit(1); }
-  const absFile = path.resolve(file);
-  const root = process.cwd();
-  const relFile = path.relative(root, absFile);
+  const { absFile, relFile } = safePath(file);
   const ts = new Date().toISOString().replace(/[-:T]/g, "").substring(0, 12) + "+0000";
   const bHash = fileHash(absFile);
   const id = generateHash8(relFile, ts, bHash);
