@@ -60,7 +60,7 @@ entries: 3
 
 | Column | Description |
 |--------|-------------|
-| **ID** | `[DNA-<hash8>]` — globally unique, content-addressed (see Section 5) |
+| **ID** | 8-char hex hash — globally unique, content-addressed (see Section 5) |
 | **Time** | POSIX timestamp from `date +%Y%m%d%H%M%z`. Never fabricated. |
 | **Agent** | Who made this change (e.g., `opus`, `sonnet`, `human`, agent name) |
 | **Act** | What was done — action description in imperative form |
@@ -69,10 +69,10 @@ entries: 3
 ### Table Rules
 
 - The header row (`| ID | Time | ...`) and separator row (`|----|------|...`) appear once per file, immediately after frontmatter.
-- Each new entry is one table row appended at the **END** of the file.
+- Each new entry is one table row inserted at the **TOP** (after the header separator row).
 - **Column alignment is NOT required.** Pipes must be present; padding is optional. Never modify existing rows to re-align. **BINDING.**
 
-## 5. DNA ID Generation (`[DNA-<hash8>]`)
+## 5. DNA ID Generation (hash8)
 
 IDs are content-addressed hashes, not sequential numbers.
 
@@ -100,7 +100,7 @@ dna_id = hash.substring(0, 8)
 ### CLI Generation
 
 ```bash
-node sifu-cli.js new src/foo.js    # generates .src/foo.js.dna.md with hash8 ID
+node sifu-cli.js new src/foo.js    # generates src/.foo.js.dna.md with hash8 ID
 ```
 
 ## 6. Insert-Only Rules (Newest First)

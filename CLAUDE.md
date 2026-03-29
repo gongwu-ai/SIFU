@@ -83,7 +83,7 @@ Summary:
 | Aspect | Rule |
 |--------|------|
 | **Sidecar** | Hidden `.{filename}.dna.md` next to every authored file |
-| **ID** | `[DNA-<hash8>]` — content-addressed: `sha256(filepath\|timestamp\|before_hash)` |
+| **ID** | 8-char hex hash — content-addressed: `sha256(filepath\|timestamp\|before_hash).substring(0,8)` |
 | **Format** | 5-column table: `ID \| Time \| Agent \| Act \| Rationale` |
 | **Ordering** | Newest-first. Insert at top after header row. |
 | **Immutability** | Table rows are insert-only. Never modify, delete, or reorder existing rows. |

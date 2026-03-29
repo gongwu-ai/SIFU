@@ -46,21 +46,21 @@ Or let your AI agent do it — tell it: "Install SIFU — read INSTALL.md"
 ## DNA Format
 
 ```
-sifu-init.js         ← code
-sifu-init.js.dna.md  ← DNA sidecar
+sifu-init.js          ← code (phenotype)
+.sifu-init.js.dna.md  ← hidden DNA sidecar (genotype)
 ```
 
-Frontmatter:
-```yaml
+5-column table, newest-first:
+```markdown
 ---
 file: sifu-init.js
+purpose: SIFU initializer — installs SKILL into detected harness
 ---
-```
 
-Entries (one line each, append at END):
-```
-- [DNA-006] 202603291402+0800 / main: simplified DNA to one-line format, old two-section structure caused agent ordering mistakes
-- [DNA-007] 202603291530+0800 / main: added multi-harness support, different harnesses use different tool names
+| ID | Time | Agent | Act | Rationale |
+|----|------|-------|-----|-----------|
+| c3d4e5f6 | 202603291530+0800 | opus | add harness detection | auto-detect installed tools |
+| a1b2c3d4 | 202603291402+0800 | opus | initial creation | need installer script |
 ```
 
 ## Works With Everything
