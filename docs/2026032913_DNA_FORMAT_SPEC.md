@@ -28,16 +28,18 @@ A `.dna.md` file has two zones: **frontmatter** (mutable metadata) and **table**
 ---
 file: src/foo.js
 purpose: HTTP client wrapper — retry logic, timeout, auth header injection
-last: a1b2c3d4 @ 202603291530+0800
+last: c3d4e5f6 @ 202603291530+0800
 entries: 3
 ---
 
 | ID | Time | Agent | Act | Rationale |
 |----|------|-------|-----|-----------|
-| a1b2c3d4 | 202603291402+0800 | opus | initial creation | need centralized HTTP with retry |
-| b2c3d4e5 | 202603291415+0800 | opus | add exponential backoff | fixed delay caused thundering herd |
 | c3d4e5f6 | 202603291530+0800 | sonnet | add auth header injection | every request needs bearer token |
+| b2c3d4e5 | 202603291415+0800 | opus | add exponential backoff | fixed delay caused thundering herd |
+| a1b2c3d4 | 202603291402+0800 | opus | initial creation | need centralized HTTP with retry |
 ```
+
+**Newest-first ordering**: the most recent entry is always the first table row (directly after the header). This enables progressive delivery — reading the top N rows gives the N most recent decisions.
 
 ## 3. Frontmatter Fields
 
@@ -101,25 +103,34 @@ dna_id = hash.substring(0, 8)
 node sifu-cli.js new src/foo.js    # generates .src/foo.js.dna.md with hash8 ID
 ```
 
-## 6. Append-Only Rules
+## 6. Insert-Only Rules (Newest First)
 
 These apply to the **table zone** (below frontmatter). **All are BINDING.**
 
 | Rule | Description |
 |------|-------------|
-| Append at END | New rows go at the last line of the file. Always. |
-| No prepend | Never add rows before existing entries. |
-| No insert | Never insert rows in the middle. |
+| Insert at TOP | New rows go directly after the header separator row (`|----`). Always. |
+| Newest first | Most recent entry = first data row. Enables progressive top-down reading. |
 | No delete | Never remove any row. |
 | No modify | Never change any existing row's content. |
-| Deprecation | To retire a decision: append a NEW row with Act = `deprecated <ID>` and Rationale = why. |
+| No reorder | Never move existing rows. |
+| Deprecation | Insert a NEW row at top with Act = `deprecated <ID>` and Rationale = why. |
 
 ### Edit Tool Pattern
 
-When using the Edit tool to append:
+When using the Edit tool to insert a new entry:
 ```
-old_string: (last table row)
-new_string: (last table row)\n| new_id | new_time | agent | act | rationale |
+old_string: |----|------|-------|-----|-----------|
+new_string: |----|------|-------|-----|-----------|
+| new_id | new_time | agent | act | rationale |
+```
+
+### CLI Read Pattern
+
+```bash
+sifu read src/foo.js          # show top 10 entries (most recent)
+sifu read src/foo.js -n 20    # show top 20
+sifu read src/foo.js --all    # show all entries
 ```
 
 ## 7. Exempt Files (No `.dna.md` Needed)
@@ -145,8 +156,8 @@ Agents reading DNA should follow this strategy to minimize context consumption:
 Level 0: Read frontmatter only (purpose + last + entries)
          -> Decide relevance. Skip irrelevant files.
 
-Level 1: Read frontmatter + last 3 table rows (tail)
-         -> Understand recent decisions.
+Level 1: Read frontmatter + top 3 data rows (most recent)
+         -> Understand recent decisions. Or: `sifu read <file>`
 
 Level 2: Read full table
          -> Complete decision history.
@@ -163,6 +174,6 @@ For bulk scanning (many files): Level 0 on all files, then Level 1+ only on rele
 2. Determine `before_hash` — hash of file content before change (or empty-string hash for new files)
 3. Generate DNA ID: `sha256(filepath|timestamp|before_hash).substring(0,8)`
 4. If `.dna.md` doesn't exist: create it with frontmatter + table header + first entry
-5. If `.dna.md` exists: append new table row at END
+5. If `.dna.md` exists: insert new table row at TOP (after header separator)
 6. Now edit the code file
 7. Optionally run `sifu-cli sync` to update frontmatter caches
