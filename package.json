@@ -1,5 +1,5 @@
 {
-  "name": "sifu-cli",
+  "name": "@gongwu-ai/sifu",
   "version": "0.1.0",
   "description": "DNA-first framework for agentic development.",
   "bin": {

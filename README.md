@@ -32,10 +32,10 @@ Code is disposable. Decision rationale persists.
 
 ```bash
 cd your-project
-npx sifu-cli init
+npx @gongwu-ai/sifu init
 ```
 
-Or tell your AI agent: "Install SIFU — run `npx sifu-cli init`"
+Or tell your AI agent: "Install SIFU — run `npx @gongwu-ai/sifu init`"
 
 ## What It Does
 
