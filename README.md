@@ -28,25 +28,18 @@ Code is disposable. Decision rationale persists.
 
 ## Quick Start
 
-**Option A: One command**
 ```bash
-git clone https://github.com/AI4Science-WestlakeU/SIFU.git
 cd your-project
-node /path/to/SIFU/sifu-init.js
+npx sifu-init
 ```
 
-**Option B: Let your AI agent do it**
-```bash
-git clone https://github.com/AI4Science-WestlakeU/SIFU.git
-# Tell your agent: "Install SIFU from /path/to/SIFU — read INSTALL.md"
-```
+Or let your AI agent do it — tell it: "Install SIFU — read INSTALL.md"
 
 ## What It Does
 
-1. **Creates `SIFU.dna.md`** — global decision registry
-2. **Injects rules** into your rules file (CLAUDE.md / AGENTS.md / etc.)
-3. **Installs hook** — blocks file writes without valid `.dna.md` sidecar
-4. **Adds `/sifu` skill** — format reference and CLI commands
+1. **Installs `/sifu` skill** into your harness (Claude Code, Cursor, Codex, Gemini, etc.)
+2. **Soft enforcement** — SKILL instructions bind all write operations to DNA-first workflow
+3. **No hooks, no injection** — works with any harness that supports skills
 
 ## DNA Format
 
