@@ -62,7 +62,8 @@ package-lock.json
 *.wav
 *.avi
 
-# === Logs ===
+# === Rendered / logs ===
+*.ans
 *.log
 
 # === Config (no DNA needed) ===
