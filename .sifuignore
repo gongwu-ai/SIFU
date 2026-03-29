@@ -1,0 +1,79 @@
+# ============================================================
+# .sifuignore — Files exempt from SIFU DNA sidecar requirement
+# ============================================================
+# Syntax: same as .gitignore
+#   - Lines ending with /     → skip entire directory
+#   - Lines starting with *.  → skip by extension
+#   - Everything else         → skip by exact filename
+#
+# Files listed here will NOT require a .dna.md sidecar.
+# Sensitive files here are also ensured in .gitignore by the installer.
+
+# === Harness / tool directories ===
+.git/
+.claude/
+.cursor/
+.codex/
+.opencode/
+.github/
+.gemini/
+.windsurf/
+.agent/
+.claude-plugin/
+
+# === Build / runtime ===
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.venv/
+__pycache__/
+
+# === Auto-generated ===
+*.lock
+package-lock.json
+*.pyc
+*.pyo
+*.pyd
+
+# === Binary / media ===
+*.so
+*.dll
+*.dylib
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.webp
+*.pdf
+*.zip
+*.tar
+*.gz
+*.bz2
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.mp3
+*.mp4
+*.wav
+*.avi
+
+# === Logs ===
+*.log
+
+# === Config (no DNA needed) ===
+.gitignore
+.claudeignore
+__init__.py
+LICENSE
+
+# === Sensitive (never push — also in .gitignore) ===
+.env
+.env.*
+*.pem
+*.key
+credentials.json

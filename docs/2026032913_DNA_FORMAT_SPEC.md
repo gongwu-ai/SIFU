@@ -135,18 +135,17 @@ sifu read src/foo.js --all    # show all entries
 
 ## 7. Exempt Files (No `.dna.md` Needed)
 
-Only auto-generated, binary, and tool-internal files are exempt.
+Exemptions are defined in **`.sifuignore`** at project root (`.gitignore` syntax). The installer creates a default `.sifuignore` with sensible defaults. If `.sifuignore` is absent, `sifu-cli` falls back to hardcoded defaults.
 
-**Directories** (skip entire subtree):
-`.git/`, `.claude/`, `.cursor/`, `.codex/`, `.opencode/`, `.github/`, `.gemini/`, `.venv/`, `__pycache__/`, `node_modules/`, `dist/`, `build/`, `.next/`, `.nuxt/`, `.windsurf/`, `.agent/`
+`.sifuignore` syntax:
+- Lines ending with `/` → directory exemptions (skip entire subtree)
+- Lines starting with `*.` → extension exemptions
+- Everything else → filename exemptions
+- `#` comments, blank lines ignored
 
-**Extensions:**
-`.lock`, `.pyc`, `.pyo`, `.pyd`, `.so`, `.dll`, `.dylib`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.ico`, `.webp`, `.pdf`, `.zip`, `.tar`, `.gz`, `.bz2`, `.woff`, `.woff2`, `.ttf`, `.eot`, `.mp3`, `.mp4`, `.wav`, `.avi`, `.log`
+The installer also ensures `.gitignore` has `!.*.dna.md` and `!**/.*.dna.md` negation rules so hidden DNA sidecars are always git-tracked.
 
-**Filenames** (exact match):
-`.gitignore`, `.claudeignore`, `.env`, `.env.local`, `__init__.py`, `LICENSE`, `package-lock.json`
-
-**Everything else needs DNA** — including `.py`, `.js`, `.ts`, `.go`, `.rs`, `.sh`, `.md`, `.json`, `.yaml`, `.toml`, `.txt`, config files, documentation, scripts.
+**Everything not in `.sifuignore` needs DNA** — including `.py`, `.js`, `.ts`, `.go`, `.rs`, `.sh`, `.md`, `.json`, `.yaml`, `.toml`, `.txt`, config files, documentation, scripts.
 
 ## 8. Progressive Delivery for Agents
 

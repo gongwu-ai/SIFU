@@ -58,6 +58,50 @@ function installSkill(dir, h, name) {
   ok(`${name}: installed SKILL.md -> ${h.skillsDir}/SKILL.md`);
 }
 
+function installSifuIgnore(dir) {
+  const ignorePath = path.join(dir, ".sifuignore");
+  if (fs.existsSync(ignorePath)) { warn(".sifuignore exists — skip"); return; }
+  const src = path.join(__dirname, ".sifuignore");
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, ignorePath);
+  } else {
+    // Inline minimal default if running without repo context
+    fs.writeFileSync(ignorePath, [
+      "# .sifuignore — Files exempt from DNA sidecar requirement",
+      ".git/", ".claude/", ".cursor/", ".codex/", ".opencode/", ".github/", ".gemini/",
+      "node_modules/", "dist/", "build/", ".venv/", "__pycache__/",
+      "*.lock", "*.pyc", "*.so", "*.dll",
+      "*.png", "*.jpg", "*.gif", "*.svg", "*.pdf", "*.zip", "*.woff", "*.mp3", "*.mp4",
+      "*.log",
+      ".gitignore", ".claudeignore", ".env", ".env.*", "LICENSE", "package-lock.json",
+    ].join("\n") + "\n");
+  }
+  ok("Created .sifuignore");
+}
+
+function protectGitIgnore(dir) {
+  const giPath = path.join(dir, ".gitignore");
+  const dnaRule = "!.*.dna.md";
+  const nestedRule = "!**/.*.dna.md";
+
+  let content = "";
+  if (fs.existsSync(giPath)) {
+    content = fs.readFileSync(giPath, "utf-8");
+    if (content.includes(dnaRule)) { warn(".gitignore already has DNA protection — skip"); return; }
+  }
+
+  const block = [
+    "",
+    "# SIFU: ensure hidden .dna.md sidecars are always git-tracked",
+    dnaRule,
+    nestedRule,
+    "",
+  ].join("\n");
+
+  fs.writeFileSync(giPath, content.trimEnd() + "\n" + block);
+  ok(".gitignore: added DNA sidecar protection (!.*.dna.md)");
+}
+
 // ============================================================
 // MAIN
 // ============================================================
@@ -72,6 +116,9 @@ if (!harnesses.length) harnesses = detect(targetDir);
 console.log("\n  SIFU — DNA-First Framework (0.1.0)\n");
 console.log(`  Target: ${targetDir}`);
 console.log(`  Harness: ${harnesses.join(", ")}\n`);
+
+installSifuIgnore(targetDir);
+protectGitIgnore(targetDir);
 
 for (const name of harnesses) {
   installSkill(targetDir, HARNESSES[name], name);

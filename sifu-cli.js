@@ -15,24 +15,79 @@ const crypto = require("node:crypto");
 
 // ─── Exemption logic ────────────────────────────────────────────
 
-const EXEMPT_DIRS = new Set([
+// Hardcoded fallback (used when .sifuignore is absent)
+const DEFAULT_EXEMPT_DIRS = new Set([
   ".git", ".claude", ".cursor", ".codex", ".opencode", ".github", ".gemini",
   ".venv", "__pycache__", "node_modules", "dist", "build", ".next", ".nuxt",
   ".windsurf", ".agent",
 ]);
-
-const EXEMPT_EXTENSIONS = new Set([
+const DEFAULT_EXEMPT_EXTENSIONS = new Set([
   ".lock", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".dylib",
   ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
   ".pdf", ".zip", ".tar", ".gz", ".bz2",
   ".woff", ".woff2", ".ttf", ".eot",
   ".mp3", ".mp4", ".wav", ".avi", ".log",
 ]);
-
-const EXEMPT_FILENAMES = new Set([
+const DEFAULT_EXEMPT_FILENAMES = new Set([
   ".gitignore", ".claudeignore", ".env", ".env.local",
   "__init__.py", "LICENSE", "package-lock.json",
 ]);
+
+// Always exempt — cannot be overridden even if .sifuignore is missing
+const ALWAYS_EXEMPT = new Set([".sifuignore"]);
+
+/**
+ * Parses a .sifuignore file into { dirs, extensions, filenames } sets.
+ * Syntax: same as .gitignore (# comments, blank lines ignored).
+ *   - Lines ending with `/`         → directory exemptions
+ *   - Lines starting with `*.`      → extension exemptions
+ *   - Everything else               → filename exemptions
+ * @param {string} content - raw .sifuignore file content
+ * @returns {{ dirs: Set<string>, extensions: Set<string>, filenames: Set<string> }}
+ */
+function parseSifuIgnore(content) {
+  const dirs = new Set();
+  const extensions = new Set();
+  const filenames = new Set();
+  for (const raw of content.split("\n")) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    if (line.endsWith("/")) {
+      dirs.add(line.slice(0, -1));
+    } else if (line.startsWith("*.")) {
+      extensions.add("." + line.slice(2));
+    } else {
+      filenames.add(line);
+    }
+  }
+  return { dirs, extensions, filenames };
+}
+
+/**
+ * Loads exemption rules. Reads .sifuignore if present, otherwise uses hardcoded defaults.
+ * @param {string} root - project root directory
+ * @returns {{ dirs: Set<string>, extensions: Set<string>, filenames: Set<string> }}
+ */
+function loadExemptions(root) {
+  const ignorePath = path.join(root, ".sifuignore");
+  try {
+    const content = fs.readFileSync(ignorePath, "utf-8");
+    return parseSifuIgnore(content);
+  } catch {
+    return {
+      dirs: DEFAULT_EXEMPT_DIRS,
+      extensions: DEFAULT_EXEMPT_EXTENSIONS,
+      filenames: DEFAULT_EXEMPT_FILENAMES,
+    };
+  }
+}
+
+// Lazy-loaded per invocation
+let _exemptions = null;
+function getExemptions() {
+  if (!_exemptions) _exemptions = loadExemptions(process.cwd());
+  return _exemptions;
+}
 
 /**
  * Determines if a file needs a .dna.md sidecar.
@@ -42,10 +97,12 @@ const EXEMPT_FILENAMES = new Set([
 function needsDna(relPath) {
   if (relPath.endsWith(".dna.md")) return false;
   const name = path.basename(relPath);
-  if (EXEMPT_FILENAMES.has(name)) return false;
-  if (EXEMPT_EXTENSIONS.has(path.extname(relPath))) return false;
+  if (ALWAYS_EXEMPT.has(name)) return false;
+  const ex = getExemptions();
+  if (ex.filenames.has(name)) return false;
+  if (ex.extensions.has(path.extname(relPath))) return false;
   const parts = relPath.replace(/\\/g, "/").split("/");
-  for (const p of parts) { if (EXEMPT_DIRS.has(p)) return false; }
+  for (const p of parts) { if (ex.dirs.has(p)) return false; }
   return true;
 }
 
@@ -92,11 +149,12 @@ function fileHash(absPath) {
 // ─── Walk directory ─────────────────────────────────────────────
 
 function walk(dir, root, results) {
+  const ex = getExemptions();
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     const rel = path.relative(root, full);
     if (entry.isDirectory()) {
-      if (!EXEMPT_DIRS.has(entry.name)) walk(full, root, results);
+      if (!ex.dirs.has(entry.name)) walk(full, root, results);
       continue;
     }
     if (entry.isFile() && needsDna(rel)) {

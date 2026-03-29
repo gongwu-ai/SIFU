@@ -131,4 +131,65 @@ describe("CLI commands", () => {
     const out = run("check", tmpDir);
     expect(out).not.toContain("logo.png");
   });
+
+  it("exempts .sifuignore itself", () => {
+    fs.writeFileSync(path.join(tmpDir, ".sifuignore"), "# test\n");
+    const out = run("check", tmpDir);
+    expect(out).not.toContain(".sifuignore");
+  });
+});
+
+// ─── .sifuignore custom patterns ────────────────────────────────
+
+describe(".sifuignore", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sifu-ignore-"));
+    fs.writeFileSync(path.join(tmpDir, "app.js"), "code");
+    fs.writeFileSync(path.join(tmpDir, "data.csv"), "a,b,c");
+    fs.writeFileSync(path.join(tmpDir, "config.toml"), "[x]");
+    fs.mkdirSync(path.join(tmpDir, "vendor"));
+    fs.writeFileSync(path.join(tmpDir, "vendor", "lib.js"), "x");
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("uses hardcoded defaults when .sifuignore is absent", () => {
+    // .gitignore should be exempt by default
+    fs.writeFileSync(path.join(tmpDir, ".gitignore"), "x");
+    const out = run("check", tmpDir);
+    expect(out).not.toContain(".gitignore");
+    expect(out).toContain("app.js");
+  });
+
+  it("respects custom directory exemptions", () => {
+    fs.writeFileSync(path.join(tmpDir, ".sifuignore"), "vendor/\n");
+    const out = run("check", tmpDir);
+    expect(out).not.toContain("vendor");
+    expect(out).toContain("app.js");
+  });
+
+  it("respects custom extension exemptions", () => {
+    fs.writeFileSync(path.join(tmpDir, ".sifuignore"), "*.csv\n");
+    const out = run("check", tmpDir);
+    expect(out).not.toContain("data.csv");
+    expect(out).toContain("app.js");
+  });
+
+  it("respects custom filename exemptions", () => {
+    fs.writeFileSync(path.join(tmpDir, ".sifuignore"), "config.toml\n");
+    const out = run("check", tmpDir);
+    expect(out).not.toContain("config.toml");
+    expect(out).toContain("app.js");
+  });
+
+  it("ignores comments and blank lines", () => {
+    fs.writeFileSync(path.join(tmpDir, ".sifuignore"), "# comment\n\n*.csv\n");
+    const out = run("check", tmpDir);
+    expect(out).not.toContain("data.csv");
+    expect(out).toContain("app.js");
+  });
 });
