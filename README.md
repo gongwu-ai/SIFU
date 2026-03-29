@@ -18,7 +18,7 @@ Git tracks **what** changed. Nobody tracks **why** it was decided that way.
 
 ## The Solution
 
-SIFU adds a `.dna.md` sidecar to every authored file. DNA is append-only and records **what changed + why** in one line per entry. This keeps decision-making consistent across:
+SIFU adds a hidden `.dna.md` sidecar to every authored file. DNA records **what changed + why** in a 5-column table, newest-first. This keeps decision-making consistent across:
 
 - **Session boundaries** — new session reads `.dna.md`, inherits prior decision logic
 - **Context compaction** — compressed context loses reasoning, `.dna.md` preserves it on disk
@@ -35,7 +35,7 @@ cd your-project
 npx sifu-init
 ```
 
-Or let your AI agent do it — tell it: "Install SIFU — read INSTALL.md"
+Or tell your AI agent: "Install SIFU — run `npx sifu-init`"
 
 ## What It Does
 
@@ -65,35 +65,33 @@ purpose: SIFU initializer — installs SKILL into detected harness
 
 ## Works With Everything
 
-SIFU is a layer, not a replacement. No conflicts.
+SIFU is a layer, not a replacement. No conflicts with existing frameworks (Superpowers, Ralph, GSD, OpenSpec, etc.) — different skills, different concerns.
 
-| Framework | SIFU adds | They keep doing |
-|-----------|-----------|-----------------|
-| [Superpowers](https://github.com/obra/superpowers) | Decision rationale | TDD, debugging, code review |
-| [Ralph](https://github.com/snarktank/ralph) | Cross-iteration memory | Autonomous loop execution |
-| [GSD](https://github.com/gsd-build/get-shit-done) | Per-file decision history | Planning, waves, verification |
-| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Implementation rationale | Spec management |
-| Standalone | All of the above | — |
-
-See [INTEGRATIONS.md](INTEGRATIONS.md) for details.
+> Integration details: TBD — see [INTEGRATIONS.md](INTEGRATIONS.md)
 
 ## Supported Harnesses
 
-| Harness | Hook support | Tool matcher |
-|---------|-------------|-------------|
-| Claude Code | Yes | `Write\|Edit` |
-| Cursor / Windsurf | Yes | `Write\|StrReplace` |
-| Codex | Yes | `Write\|Edit` |
-| Gemini CLI | Yes | `write_file\|replace` |
-| OpenCode | Plugin | `write\|edit` |
-| Copilot | Rules only | — |
+| Harness | Status |
+|---------|--------|
+| **Claude Code** | Supported — SKILL + CLI |
+| Cursor / Windsurf | TBD |
+| Codex | TBD |
+| Gemini CLI | TBD |
+| OpenCode | TBD |
+| Copilot | TBD |
+| Cline / RooCode / Kiro | TBD |
+
+Enforcement is via SKILL instructions (soft, no hooks). Harness adapter pattern ready — contributions welcome.
 
 ## CLI
 
 ```bash
-node sifu-cli.js check     # List files missing .dna.md
-node sifu-cli.js status    # Show DNA coverage %
-node sifu-cli.js new <f>   # Generate .dna.md template
+sifu check              # List files missing .dna.md
+sifu status             # DNA coverage %
+sifu new <file>         # Create .dna.md template
+sifu read <file>        # Top 10 entries (newest first)
+sifu sync               # Update frontmatter caches
+sifu hash <file>        # Generate hash8 ID
 ```
 
 ## Philosophy
@@ -103,5 +101,5 @@ node sifu-cli.js new <f>   # Generate .dna.md template
 | DNA-first | Decision rationale before implementation, always |
 | Phenotype disposable | Code can be deleted and regenerated from DNA |
 | Wrong is OK | Bad DNA can exist; append correction, never delete |
-| Append-only | New entries at END of file. No prepend, insert, delete, or edit. Ever. |
+| Insert-only | New entries at TOP (newest-first). No delete, modify, or reorder. |
 | 宁滥勿缺 | When in doubt, write the rationale |
