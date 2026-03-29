@@ -21,20 +21,7 @@ const path = require("node:path");
 // ASCII ART + DISPLAY
 // ============================================================
 
-const BANNER = `
-              . . .
-            .-------.
-           /  -   -  \\
-          |    ._.    |
-           \\_________/
-          |    _||_   |
-          |   | || |  |
-          |   | || |  |
-           \\__|_||_|__/
-            /  /  \\  \\
-           /  /    \\  \\
-          (__/      \\__)
-
+const BANNER_FALLBACK = `
      S I F U  ·  DNA-First Framework
           一日为师，终身为师
 `;
@@ -44,7 +31,16 @@ const warn = (m) => console.log(`  \x1b[33m!\x1b[0m ${m}`);
 const info = (m) => console.log(`  \x1b[36m>\x1b[0m ${m}`);
 
 function printBanner() {
-  console.log(`\x1b[36m${BANNER}\x1b[0m`);
+  // Try to load pre-rendered ANSI art banner
+  const bannerPath = path.join(__dirname, "assets", "banner.ans");
+  try {
+    const art = fs.readFileSync(bannerPath, "utf-8");
+    console.log(art);
+    console.log("     \x1b[1mS I F U\x1b[0m  ·  DNA-First Framework");
+    console.log("          一日为师，终身为师\n");
+  } catch {
+    console.log(`\x1b[36m${BANNER_FALLBACK}\x1b[0m`);
+  }
 }
 
 function printSummary(targetDir, harnesses, actions) {

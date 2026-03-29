@@ -10,7 +10,8 @@
     "sifu-init.js",
     "sifu-cli.js",
     ".claude",
-    ".sifuignore"
+    ".sifuignore",
+    "assets/banner.ans"
   ],
   "keywords": [
     "ai",
