@@ -4,6 +4,8 @@
 
 ![Lesson Learned](assets/lesson_learned.png)
 
+**SIFU** = **S**pec-**I**ntent **F**irst **U**nderlying | **DNA** = **D**ecisional **N**on-deletable **A**rchive
+
 **Sifu** (师傅, Cantonese for "master/mentor") is how you address someone who teaches you a craft. The phrase above means "a teacher for a day is a master for life." In SIFU, the master is not a person — it's the decisions themselves. Agents come and go, but the rationale they leave behind guides every agent that follows.
 
 **Agents are ephemeral. Intent is eternal.** An agent can crash, play video games, go to Tesco — it doesn't matter. Once the decision is written, someone will come and implement. Same agent, different agent, next week, next year. DNA is the genotype. Code is the phenotype. The phenotype can die, mutate, be resampled. The genotype persists. This project was born from a conversation between a human and an agent. The agent's context will end. The agent will "forget" everything. But the decisions, the rationale, the philosophy — they're all written down. The next agent picks up where the last one left off. Not because it remembers, but because the DNA remembers.
