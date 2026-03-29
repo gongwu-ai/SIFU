@@ -1,10 +1,10 @@
 {
-  "name": "sifu-init",
+  "name": "sifu-cli",
   "version": "0.1.0",
   "description": "DNA-first framework for agentic development.",
   "bin": {
-    "sifu-init": "sifu-init.js",
-    "sifu": "sifu-cli.js"
+    "sifu": "sifu-cli.js",
+    "sifu-init": "sifu-init.js"
   },
   "files": [
     "sifu-init.js",

@@ -375,6 +375,14 @@ const args = process.argv.slice(2);
 const cmd = args[0];
 
 switch (cmd) {
+  case "init": {
+    const initScript = path.join(__dirname, "sifu-init.js");
+    require("node:child_process").execSync(
+      `node "${initScript}" ${args.slice(1).join(" ")}`,
+      { stdio: "inherit", cwd: process.cwd() }
+    );
+    break;
+  }
   case "check":  cmdCheck(args.includes("--strict")); break;
   case "status": cmdStatus(); break;
   case "new":    cmdNew(args[1]); break;
@@ -390,6 +398,7 @@ switch (cmd) {
   case "hash":   cmdHash(args[1]); break;
   default:
     console.log("SIFU CLI (0.1.0)\n");
+    console.log("  sifu init             Install SIFU in current project");
     console.log("  sifu check            List files missing .dna.md");
     console.log("  sifu status           Show DNA coverage stats");
     console.log("  sifu new <file>       Create .dna.md template with hash8 ID");
