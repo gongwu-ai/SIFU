@@ -70,19 +70,25 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 | **Logging only** | SIFU enforces logging + append-only, not correctness. Audit handles correctness. |
 | **No orphan code** | DNA comes first, so code always has lineage. Losing impl is OK, losing lineage is not. |
 | **DNA ≠ Commit** | DNA update and git commit are independent operations. DNA is the goal, commit is optional. |
-| **Decision > History** | Only Decision Rationale has real value. Implementation History is low-value log, losing it is OK. |
+| **Decision > History** | Act + Rationale is what matters. One-line entries, no separate history section. |
 | **Better verbose than missing** | When unsure if rationale is needed, write it. Disk space is cheap, lost knowledge is not. |
 | **Bootstrap safety** | SIFU must not block its own development. During dev, disable enforcement to avoid self-deadlock. |
 
-## DNA Validation Rules
+## DNA Format
 
-| Rule | Description |
-|------|-------------|
-| **Sidecar Existence** | Every non-`.dna.md` file needs a matching `.{filename}.dna.md` hidden sidecar. `.dna.md` files themselves are exempt. |
-| **DNA ID Globally Unique** | DNA IDs use content-hash format `[DNA-<hash8>]`. Allocated and validated by `sifu-cli.js`, no global registry file. |
-| **Append-Only** | No deletions allowed in `.dna.md` files. Use `DEPRECATED` to retire entries. |
-| **Section Structure** | Each `.dna.md` must have `## Decision Rationale` and `## Implementation History`. See `docs/` for full format spec. |
-| **Causal Order** | Implementation History refs can only reference IDs declared in the same file's Decision Rationale. |
+Full specification: [`docs/2026032913_DNA_FORMAT_SPEC.md`](docs/2026032913_DNA_FORMAT_SPEC.md)
+
+Summary:
+
+| Aspect | Rule |
+|--------|------|
+| **Sidecar** | Hidden `.{filename}.dna.md` next to every authored file |
+| **ID** | `[DNA-<hash8>]` — content-addressed: `sha256(filepath\|timestamp\|before_hash)` |
+| **Format** | 5-column table: `ID \| Time \| Agent \| Act \| Rationale` |
+| **Ordering** | Newest-first. Insert at top after header row. |
+| **Immutability** | Table rows are insert-only. Never modify, delete, or reorder existing rows. |
+| **Frontmatter** | Mutable metadata: `file`, `purpose` (agent), `last`, `entries` (CLI auto) |
+| **Enforcement** | Soft — via SKILL instructions. No pre-hook hard enforcement. |
 
 ## Open Questions: Agent Trust
 
@@ -90,11 +96,9 @@ We explicitly **trade disk space for traceability and resilience**: keep fine-gr
 |---------------------|------------------------------|
 | DNA entry exists | DNA content is true |
 | No deletions | Timestamps are accurate |
-| Causal structure | Rationale is honest |
+| Structure enforced | Rationale is honest |
 
 **Current stance**: Assume good-faith agents. Rely on audit for truth verification.
-
-**Future options**: External witness, cryptographic signing, cross-agent verification.
 
 ---
 
