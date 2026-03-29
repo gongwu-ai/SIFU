@@ -326,7 +326,7 @@ function parseDna(dnaFilePath: string): { frontmatter: Frontmatter; entries: Dna
  */
 function insertDnaEntry(
   file: string, act: string, rationale: string,
-  agent: string, purpose?: string,
+  agent: string, purpose?: string, contextLines = 3,
 ): string {
   const { absFile, relFile, root } = safePath(file);
 
@@ -346,6 +346,8 @@ function insertDnaEntry(
   const newRow = `| ${id} | ${ts} | ${agent} | ${escapedAct} | ${escapedRationale} |`;
 
   if (fs.existsSync(dna)) {
+    // Read existing entries BEFORE inserting — for context output
+    const { entries: existingEntries } = parseDna(dna);
     let content = fs.readFileSync(dna, "utf-8");
     // Insert new row after separator line
     content = content.replace(/^(\|-[-|\s]*\|)$/m, `$1\n${newRow}`);
@@ -354,7 +356,16 @@ function insertDnaEntry(
       content = content.replace(/^last:.*$/m, `last: ${id} @ ${ts}`);
     }
     fs.writeFileSync(dna, content);
-    console.log(`  \x1b[32m+\x1b[0m ${relDna} — ${id}`);
+    const priorTag = existingEntries.length > 0 ? ` (${existingEntries.length} prior)` : "";
+    console.log(`  \x1b[32m+\x1b[0m ${relDna} — ${id}${priorTag}`);
+    // Show recent context so agent sees prior decisions
+    if (existingEntries.length > 0 && contextLines > 0) {
+      const show = existingEntries.slice(0, contextLines);
+      console.log(`  Context (recent ${show.length}):`);
+      for (const e of show) {
+        console.log(`    ${e.id} | ${e.agent} | ${e.act} | ${e.rationale}`);
+      }
+    }
   } else {
     const effectivePurpose = (purpose || rationale).replace(/\n/g, " ").trim();
     const content = [
@@ -393,7 +404,10 @@ function cmdLog(args: string[]): void {
   if (!act) { console.error("Error: --act is required"); process.exit(1); }
   if (!rationale) { console.error("Error: --rationale is required"); process.exit(1); }
 
-  insertDnaEntry(file, act, rationale, agent, purpose);
+  const ctxArg = getArg(args, "--context");
+  const contextLines = ctxArg !== undefined ? parseInt(ctxArg, 10) : 3;
+
+  insertDnaEntry(file, act, rationale, agent, purpose, contextLines);
 }
 
 function cmdDeprecate(args: string[]): void {

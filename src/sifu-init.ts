@@ -148,7 +148,7 @@ function installSifuIgnore(dir: string): number {
       "node_modules/", "dist/", "build/", ".venv/", "__pycache__/",
       "*.lock", "*.pyc", "*.so", "*.dll",
       "*.png", "*.jpg", "*.gif", "*.svg", "*.pdf", "*.zip", "*.woff", "*.mp3", "*.mp4",
-      "*.log",
+      "*.log", "ralph_*",
       ".gitignore", ".claudeignore", ".env", ".env.*", "LICENSE", "package-lock.json",
     ].join("\n") + "\n");
   }

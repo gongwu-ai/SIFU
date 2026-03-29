@@ -62,9 +62,10 @@ package-lock.json
 *.wav
 *.avi
 
-# === Rendered / logs ===
+# === Rendered / logs / state tracking ===
 *.ans
 *.log
+ralph_*
 
 # === Config (no DNA needed) ===
 .gitignore

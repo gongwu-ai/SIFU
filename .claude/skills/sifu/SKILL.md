@@ -1,6 +1,6 @@
 ---
 name: sifu
-description: "SIFU DNA-first framework. BINDING rules for all file write/create/update operations. Every non-exempt authored file (not just code — .md, .json, .yaml, configs, docs too) needs a hidden .dna.md sidecar with decision rationale BEFORE code changes. Triggers on Write, Edit, Create, Bash(sed/tee/cat/>), StrReplace, write_file, replace."
+description: "SIFU DNA-first framework. BINDING rules for all file write/create/update operations. Every non-exempt authored file (not just code — .md, .json, .yaml, configs, docs too) needs a hidden .dna.md sidecar with decision rationale BEFORE code changes. When acting on external feedback or when prior DNA entries conflict with your change, read history and deprecate explicitly — never override silently. Triggers on Write, Edit, Create, Bash(sed/tee/cat/>), StrReplace, write_file, replace."
 user-invocable: true
 ---
 
@@ -27,6 +27,13 @@ Before modifying ANY non-exempt file, you MUST:
 3. THEN make the code change
 
 If the `.dna.md` does not exist, create it BEFORE writing the code file. **No exceptions.**
+
+**File deletion is also a decision.** Before removing a file, log the deletion:
+```bash
+sifu log <file> --act "file deleted" --rationale "why" --agent <name>
+rm <file>
+```
+The `.dna.md` sidecar stays as a tombstone — preserving the file's decision history and deletion rationale. If the file is later recreated, its DNA continues from where it left off.
 
 ### Rule 2: Hidden Sidecar Naming
 
@@ -107,6 +114,22 @@ Common exemptions: `.git/`, `.claude/`, `node_modules/`, `dist/`, `*.lock`, `*.p
 
 **Everything NOT in `.sifuignore` needs DNA.**
 
+### Rule 9: Context Awareness
+
+`sifu log` automatically shows prior entries when updating an existing file. Two situations require action:
+
+**Trigger 1 — External feedback (audit, review, incident):**
+When acting on someone else's feedback, `sifu read <file> --all` first. Understand WHY the current design exists before changing it. Then either:
+- Fix it: `sifu deprecate <file> <id>` the contradicted entry, then implement
+- Reject it: `sifu log <file> --act "finding rejected" --rationale "id <id> explains why current approach is correct"`
+
+**Trigger 2 — Context shows conflict:**
+If the `sifu log` context output contains an entry that contradicts what you're about to do (e.g., you see "add retry" but you're removing retry), `sifu deprecate` that entry before proceeding.
+
+**All other cases:** just `sifu log` and write code. No extra steps needed.
+
+This prevents decision oscillation without requiring agents to self-classify their changes.
+
 ## Workflow
 
 ### Primary (with CLI — preferred)
@@ -116,7 +139,13 @@ sifu log <file> --act "..." --rationale "..." --agent <name> [--purpose "..."]
 ```
 
 One command handles: timestamp, hash8, sidecar creation/update, frontmatter.
+Output shows prior entry count and recent context (default 3 lines).
 Then edit the code file.
+
+**Context control** — `--context N` adjusts how many prior entries are shown:
+- Default (3): see recent decisions before writing — recommended for most work
+- `--context 0`: suppress context, only show prior count — use when token-constrained (bulk operations, many files in one task)
+- `--context 10`: deep context — use for complex refactors touching files with long history
 
 ### Fallback (manual Edit — when no CLI/Bash access)
 
