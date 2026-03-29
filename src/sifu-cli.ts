@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 /**
- * SIFU CLI (0.1.0)
+ * SIFU CLI (0.2.0)
  *
  * Commands: check, status, new, read, sync, hash
  * Zero dependencies — pure Node.js.
@@ -9,48 +8,91 @@
  * IDs: [DNA-<hash8>] content-addressed via sha256(filepath|timestamp|before_hash).
  */
 
-const fs = require("node:fs");
-const path = require("node:path");
-const crypto = require("node:crypto");
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+
+// ─── Types ─────────────────────────────────────────────────────
+
+interface DnaEntry {
+  id: string;
+  time: string;
+  agent: string;
+  act: string;
+  rationale: string;
+}
+
+interface Frontmatter {
+  file?: string;
+  purpose?: string;
+  last?: string;
+  entries?: string;
+  [key: string]: string | undefined;
+}
+
+interface Exemptions {
+  dirs: Set<string>;
+  extensions: Set<string>;
+  filenames: Set<string>;
+  prefixes: string[];
+}
+
+interface WalkResult {
+  rel: string;
+  full: string;
+  hasDna: boolean;
+  dnaFull: string;
+}
+
+interface SafePathResult {
+  absFile: string;
+  relFile: string;
+  root: string;
+}
+
+interface ParsedDna {
+  frontmatter: Frontmatter;
+  entries: DnaEntry[];
+}
 
 // ─── Exemption logic ────────────────────────────────────────────
 
 // Hardcoded fallback (used when .sifuignore is absent)
-const DEFAULT_EXEMPT_DIRS = new Set([
+const DEFAULT_EXEMPT_DIRS: Set<string> = new Set([
   ".git", ".claude", ".cursor", ".codex", ".opencode", ".github", ".gemini",
   ".venv", "__pycache__", "node_modules", "dist", "build", ".next", ".nuxt",
   ".windsurf", ".agent",
 ]);
-const DEFAULT_EXEMPT_EXTENSIONS = new Set([
+const DEFAULT_EXEMPT_EXTENSIONS: Set<string> = new Set([
   ".lock", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".dylib",
   ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
   ".pdf", ".zip", ".tar", ".gz", ".bz2",
   ".woff", ".woff2", ".ttf", ".eot",
   ".mp3", ".mp4", ".wav", ".avi", ".log",
 ]);
-const DEFAULT_EXEMPT_FILENAMES = new Set([
+const DEFAULT_EXEMPT_FILENAMES: Set<string> = new Set([
   ".gitignore", ".claudeignore", ".env", ".env.local",
   "__init__.py", "LICENSE", "package-lock.json",
 ]);
 
 // Always exempt — cannot be overridden even if .sifuignore is missing
-const ALWAYS_EXEMPT = new Set([".sifuignore"]);
+const ALWAYS_EXEMPT: Set<string> = new Set([".sifuignore"]);
 
 /**
- * Parses a .sifuignore file into { dirs, extensions, filenames } sets.
+ * Parses a .sifuignore file into { dirs, extensions, filenames, prefixes } sets.
  * Simplified .gitignore-like syntax (# comments, blank lines ignored).
- *   - Lines ending with `/`         → directory exemptions
- *   - Lines starting with `*.`      → extension exemptions
- *   - Lines with `*` elsewhere      → prefix glob (e.g. `.env.*` matches `.env.prod`)
- *   - Everything else               → exact filename exemptions
- * @param {string} content - raw .sifuignore file content
- * @returns {{ dirs: Set<string>, extensions: Set<string>, filenames: Set<string> }}
+ *   - Lines ending with `/`         -> directory exemptions
+ *   - Lines starting with `*.`      -> extension exemptions
+ *   - Lines with `*` elsewhere      -> prefix glob (e.g. `.env.*` matches `.env.prod`)
+ *   - Everything else               -> exact filename exemptions
+ * @param content - raw .sifuignore file content
+ * @returns parsed exemption rules
  */
-function parseSifuIgnore(content) {
-  const dirs = new Set();
-  const extensions = new Set();
-  const filenames = new Set();
-  const prefixes = [];
+function parseSifuIgnore(content: string): Exemptions {
+  const dirs = new Set<string>();
+  const extensions = new Set<string>();
+  const filenames = new Set<string>();
+  const prefixes: string[] = [];
   for (const raw of content.split("\n")) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
@@ -71,10 +113,10 @@ function parseSifuIgnore(content) {
 
 /**
  * Loads exemption rules. Reads .sifuignore if present, otherwise uses hardcoded defaults.
- * @param {string} root - project root directory
- * @returns {{ dirs: Set<string>, extensions: Set<string>, filenames: Set<string> }}
+ * @param root - project root directory
+ * @returns parsed exemption rules
  */
-function loadExemptions(root) {
+function loadExemptions(root: string): Exemptions {
   const ignorePath = path.join(root, ".sifuignore");
   try {
     const content = fs.readFileSync(ignorePath, "utf-8");
@@ -90,25 +132,25 @@ function loadExemptions(root) {
 }
 
 // Lazy-loaded per invocation
-let _exemptions = null;
-function getExemptions() {
+let _exemptions: Exemptions | null = null;
+function getExemptions(): Exemptions {
   if (!_exemptions) _exemptions = loadExemptions(process.cwd());
   return _exemptions;
 }
 
 /**
  * Determines if a file needs a .dna.md sidecar.
- * @param {string} relPath - path relative to project root
- * @returns {boolean}
+ * @param relPath - path relative to project root
+ * @returns true if the file needs a DNA sidecar
  */
-function needsDna(relPath) {
+function needsDna(relPath: string): boolean {
   if (relPath.endsWith(".dna.md")) return false;
   const name = path.basename(relPath);
   if (ALWAYS_EXEMPT.has(name)) return false;
   const ex = getExemptions();
   if (ex.filenames.has(name)) return false;
   if (ex.extensions.has(path.extname(relPath))) return false;
-  if (ex.prefixes && ex.prefixes.some(p => name.startsWith(p))) return false;
+  if (ex.prefixes && ex.prefixes.some((p) => name.startsWith(p))) return false;
   const parts = relPath.replace(/\\/g, "/").split("/");
   for (const p of parts) { if (ex.dirs.has(p)) return false; }
   return true;
@@ -117,10 +159,10 @@ function needsDna(relPath) {
 /**
  * Returns the hidden .dna.md sidecar path for a given file path.
  * e.g., "src/foo.js" -> "src/.foo.js.dna.md"
- * @param {string} filePath
- * @returns {string}
+ * @param filePath - path to the source file
+ * @returns path to the corresponding DNA sidecar
  */
-function dnaPath(filePath) {
+function dnaPath(filePath: string): string {
   const dir = path.dirname(filePath);
   const name = path.basename(filePath);
   return path.join(dir, `.${name}.dna.md`);
@@ -132,10 +174,10 @@ function dnaPath(filePath) {
  * Resolves a file path, validates it is within the project root,
  * and returns { absFile, relFile } with POSIX-normalized relFile.
  * Exits with error if path escapes project root.
- * @param {string} file - user-provided file path
- * @returns {{ absFile: string, relFile: string, root: string }}
+ * @param file - user-provided file path
+ * @returns resolved path info
  */
-function safePath(file) {
+function safePath(file: string): SafePathResult {
   const root = process.cwd();
   const absFile = path.resolve(file);
   const relFile = path.relative(root, absFile).replace(/\\/g, "/");
@@ -150,22 +192,22 @@ function safePath(file) {
 
 /**
  * Generates a content-addressed DNA hash8 ID.
- * @param {string} filePath - relative path to the tracked file
- * @param {string} timestamp - POSIX timestamp string
- * @param {string} beforeHash - sha256 of file content before change (or empty-string hash)
- * @returns {string} 8-char hex hash
+ * @param filePath - relative path to the tracked file
+ * @param timestamp - POSIX timestamp string
+ * @param beforeHash - sha256 of file content before change (or empty-string hash)
+ * @returns 8-char hex hash
  */
-function generateHash8(filePath, timestamp, beforeHash) {
+function generateHash8(filePath: string, timestamp: string, beforeHash: string): string {
   const input = `${filePath}|${timestamp}|${beforeHash}`;
   return crypto.createHash("sha256").update(input).digest("hex").substring(0, 8);
 }
 
 /**
  * Computes sha256 of a file's content, or of empty string if file doesn't exist.
- * @param {string} absPath - absolute path to the file
- * @returns {string} hex sha256
+ * @param absPath - absolute path to the file
+ * @returns hex sha256
  */
-function fileHash(absPath) {
+function fileHash(absPath: string): string {
   try {
     const content = fs.readFileSync(absPath);
     return crypto.createHash("sha256").update(content).digest("hex");
@@ -176,7 +218,7 @@ function fileHash(absPath) {
 
 // ─── Walk directory ─────────────────────────────────────────────
 
-function walk(dir, root, results) {
+function walk(dir: string, root: string, results: WalkResult[]): WalkResult[] {
   const ex = getExemptions();
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
@@ -197,13 +239,13 @@ function walk(dir, root, results) {
 
 /**
  * Parses a .dna.md file into frontmatter + entries.
- * @param {string} dnaFilePath
- * @returns {{ frontmatter: object, entries: Array<{id,time,agent,act,rationale}> }}
+ * @param dnaFilePath - path to the DNA sidecar file
+ * @returns parsed frontmatter and entry list
  */
-function parseDna(dnaFilePath) {
+function parseDna(dnaFilePath: string): ParsedDna {
   const content = fs.readFileSync(dnaFilePath, "utf-8");
-  const fm = {};
-  const entries = [];
+  const fm: Frontmatter = {};
+  const entries: DnaEntry[] = [];
 
   // Parse frontmatter
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -222,7 +264,7 @@ function parseDna(dnaFilePath) {
     if (trimmed.startsWith("| ID")) { inTable = true; continue; }
     if (trimmed.startsWith("|----") || trimmed.startsWith("|-")) { continue; }
     if (inTable && trimmed.startsWith("|")) {
-      const cells = trimmed.split("|").map(s => s.trim()).filter(Boolean);
+      const cells = trimmed.split("|").map((s) => s.trim()).filter(Boolean);
       if (cells.length >= 5) {
         entries.push({
           id: cells[0], time: cells[1], agent: cells[2],
@@ -237,10 +279,10 @@ function parseDna(dnaFilePath) {
 
 // ─── Commands ───────────────────────────────────────────────────
 
-function cmdCheck(strict) {
+function cmdCheck(strict: boolean): void {
   const root = process.cwd();
   const files = walk(root, root, []);
-  const missing = files.filter(f => !f.hasDna);
+  const missing = files.filter((f) => !f.hasDna);
   if (missing.length === 0) {
     console.log(`All ${files.length} files have .dna.md sidecars.`);
   } else {
@@ -251,17 +293,17 @@ function cmdCheck(strict) {
   }
 }
 
-function cmdStatus() {
+function cmdStatus(): void {
   const root = process.cwd();
   const files = walk(root, root, []);
-  const covered = files.filter(f => f.hasDna).length;
+  const covered = files.filter((f) => f.hasDna).length;
   const total = files.length;
   const pct = total ? Math.round(covered / total * 100) : 100;
   console.log(`DNA coverage: ${covered}/${total} (${pct}%)`);
   if (pct < 100) console.log(`Run: sifu check  for details.`);
 }
 
-function cmdNew(file) {
+function cmdNew(file: string | undefined): void {
   if (!file) { console.log("Usage: sifu new <file>"); process.exit(1); }
   const { absFile, relFile, root } = safePath(file);
   const dna = dnaPath(absFile);
@@ -291,7 +333,7 @@ entries: 1
   console.log(`  Edit 'purpose' and first entry rationale before writing code.`);
 }
 
-function cmdRead(file, n) {
+function cmdRead(file: string | undefined, n: number): void {
   if (!file) { console.log("Usage: sifu read <file> [-n NUM] [--all]"); process.exit(1); }
   const { absFile, root } = safePath(file);
   const dna = dnaPath(absFile);
@@ -319,7 +361,7 @@ function cmdRead(file, n) {
   }
 }
 
-function cmdSync() {
+function cmdSync(): void {
   const root = process.cwd();
   const files = walk(root, root, []);
   let updated = 0;
@@ -357,7 +399,7 @@ function cmdSync() {
   console.log(`Synced frontmatter for ${updated} .dna.md files.`);
 }
 
-function cmdHash(file) {
+function cmdHash(file: string | undefined): void {
   if (!file) { console.log("Usage: sifu hash <file>"); process.exit(1); }
   const { absFile, relFile } = safePath(file);
   const ts = new Date().toISOString().replace(/[-:T]/g, "").substring(0, 12) + "+0000";
@@ -397,7 +439,7 @@ switch (cmd) {
   case "sync":   cmdSync(); break;
   case "hash":   cmdHash(args[1]); break;
   default:
-    console.log("SIFU CLI (0.1.0)\n");
+    console.log("SIFU CLI (0.2.0)\n");
     console.log("  sifu init             Install SIFU in current project");
     console.log("  sifu check            List files missing .dna.md");
     console.log("  sifu status           Show DNA coverage stats");

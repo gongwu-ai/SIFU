@@ -5,8 +5,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
 
-const CLI = path.resolve("sifu-cli.js");
-const run = (args, cwd) =>
+const CLI = path.resolve("dist/sifu-cli.js");
+const run = (args: string, cwd: string): string =>
   execSync(`node ${CLI} ${args}`, { cwd, encoding: "utf-8", timeout: 5000 });
 
 // ─── Unit: hash8 generation ────────────────────────────────────
@@ -37,7 +37,7 @@ describe("hash8 ID generation", () => {
 // ─── Integration: CLI commands ──────────────────────────────────
 
 describe("CLI commands", () => {
-  let tmpDir;
+  let tmpDir: string;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sifu-test-"));
@@ -142,7 +142,7 @@ describe("CLI commands", () => {
 // ─── .sifuignore custom patterns ────────────────────────────────
 
 describe(".sifuignore", () => {
-  let tmpDir;
+  let tmpDir: string;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sifu-ignore-"));

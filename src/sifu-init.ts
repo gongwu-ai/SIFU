@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 /**
- * SIFU Initializer (0.1.0)
+ * SIFU Initializer (0.2.0)
  *
  * Installs SIFU DNA-first framework into AI coding projects.
  * Auto-detects harnesses, installs SKILL, creates .sifuignore,
@@ -14,8 +13,16 @@
  * Zero dependencies.
  */
 
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
+
+// ─── Types ─────────────────────────────────────────────────────
+
+interface HarnessConfig {
+  dir: string;
+  skillsDir: string;
+  desc: string;
+}
 
 // ============================================================
 // ASCII ART + DISPLAY
@@ -26,13 +33,13 @@ const BANNER_FALLBACK = `
           一日为师，终身为师
 `;
 
-const ok  = (m) => console.log(`  \x1b[32m+\x1b[0m ${m}`);
-const warn = (m) => console.log(`  \x1b[33m!\x1b[0m ${m}`);
-const info = (m) => console.log(`  \x1b[36m>\x1b[0m ${m}`);
+const ok = (m: string): void => { console.log(`  \x1b[32m+\x1b[0m ${m}`); };
+const warn = (m: string): void => { console.log(`  \x1b[33m!\x1b[0m ${m}`); };
+const info = (m: string): void => { console.log(`  \x1b[36m>\x1b[0m ${m}`); };
 
-function printBanner() {
+function printBanner(): void {
   // Try to load pre-rendered ANSI art banner
-  const bannerPath = path.join(__dirname, "assets", "banner.ans");
+  const bannerPath = path.join(__dirname, "..", "assets", "banner.ans");
   try {
     const art = fs.readFileSync(bannerPath, "utf-8");
     console.log(art);
@@ -43,7 +50,7 @@ function printBanner() {
   }
 }
 
-function printSummary(targetDir, harnesses, actions) {
+function printSummary(targetDir: string, harnesses: string[], actions: number): void {
   console.log("");
   console.log("  \x1b[1m┌─────────────────────────────────────────┐\x1b[0m");
   console.log("  \x1b[1m│\x1b[0m  SIFU Initialized                       \x1b[1m│\x1b[0m");
@@ -66,8 +73,8 @@ function printSummary(targetDir, harnesses, actions) {
 // SKILL TEMPLATE
 // ============================================================
 
-function getSkill() {
-  const localSkill = path.join(__dirname, ".claude", "skills", "sifu", "SKILL.md");
+function getSkill(): string {
+  const localSkill = path.join(__dirname, "..", ".claude", "skills", "sifu", "SKILL.md");
   if (fs.existsSync(localSkill)) return fs.readFileSync(localSkill, "utf-8");
   throw new Error("SKILL.md not found. Clone the full SIFU repo.");
 }
@@ -76,7 +83,7 @@ function getSkill() {
 // HARNESS DEFINITIONS
 // ============================================================
 
-const HARNESSES = {
+const HARNESSES: Record<string, HarnessConfig> = {
   claude:      { dir: ".claude",    skillsDir: "skills/sifu",  desc: "Claude Code" },
   cursor:      { dir: ".cursor",    skillsDir: "skills/sifu",  desc: "Cursor" },
   windsurf:    { dir: ".windsurf",  skillsDir: "skills/sifu",  desc: "Windsurf" },
@@ -92,21 +99,21 @@ const HARNESSES = {
 
 /**
  * Auto-detect installed harnesses by checking for their config directories.
- * @param {string} targetDir
- * @returns {string[]} harness names
+ * @param targetDir - project root directory
+ * @returns harness names found
  */
-function detect(targetDir) {
-  const found = [];
+function detect(targetDir: string): string[] {
+  const found: string[] = [];
   for (const [name, h] of Object.entries(HARNESSES)) {
     if (fs.existsSync(path.join(targetDir, h.dir))) found.push(name);
   }
   return found;
 }
 
-function printDetection(targetDir) {
+function printDetection(targetDir: string): void {
   console.log("  Scanning for harnesses...\n");
   const all = Object.entries(HARNESSES);
-  for (const [name, h] of all) {
+  for (const [, h] of all) {
     const exists = fs.existsSync(path.join(targetDir, h.dir));
     const icon = exists ? "\x1b[32m●\x1b[0m" : "\x1b[90m○\x1b[0m";
     const label = exists ? `\x1b[1m${h.desc}\x1b[0m` : `\x1b[90m${h.desc}\x1b[0m`;
@@ -119,7 +126,7 @@ function printDetection(targetDir) {
 // INSTALL LOGIC
 // ============================================================
 
-function installSkill(dir, harnessName) {
+function installSkill(dir: string, harnessName: string): number {
   const h = HARNESSES[harnessName];
   const skillDir = path.join(dir, h.dir, h.skillsDir);
   fs.mkdirSync(skillDir, { recursive: true });
@@ -128,10 +135,10 @@ function installSkill(dir, harnessName) {
   return 1;
 }
 
-function installSifuIgnore(dir) {
+function installSifuIgnore(dir: string): number {
   const ignorePath = path.join(dir, ".sifuignore");
   if (fs.existsSync(ignorePath)) { warn(".sifuignore exists — skip"); return 0; }
-  const src = path.join(__dirname, ".sifuignore");
+  const src = path.join(__dirname, "..", ".sifuignore");
   if (fs.existsSync(src)) {
     fs.copyFileSync(src, ignorePath);
   } else {
@@ -149,7 +156,7 @@ function installSifuIgnore(dir) {
   return 1;
 }
 
-function protectGitIgnore(dir) {
+function protectGitIgnore(dir: string): number {
   const giPath = path.join(dir, ".gitignore");
   const dnaRule = "!.*.dna.md";
   const nestedRule = "!**/.*.dna.md";
@@ -184,14 +191,14 @@ const installAll = args.includes("--all");
 printBanner();
 
 // Determine harnesses
-let harnesses;
+let harnesses: string[];
 if (installAll) {
   harnesses = Object.keys(HARNESSES);
   info(`Installing for ALL ${harnesses.length} harnesses`);
 } else {
   const explicit = args
-    .filter(a => HARNESSES[a.replace(/^--/, "")])
-    .map(a => a.replace(/^--/, ""));
+    .filter((a) => HARNESSES[a.replace(/^--/, "")])
+    .map((a) => a.replace(/^--/, ""));
   if (explicit.length) {
     harnesses = explicit;
     info(`Installing for: ${harnesses.join(", ")}`);

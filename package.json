@@ -1,14 +1,13 @@
 {
   "name": "@gongwu-ai/sifu",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DNA-first framework for agentic development.",
   "bin": {
-    "sifu": "sifu-cli.js",
-    "sifu-init": "sifu-init.js"
+    "sifu": "dist/sifu-cli.js",
+    "sifu-init": "dist/sifu-init.js"
   },
   "files": [
-    "sifu-init.js",
-    "sifu-cli.js",
+    "dist",
     ".claude",
     ".sifuignore",
     "assets/banner.ans"
@@ -25,15 +24,21 @@
     "type": "git",
     "url": ""
   },
-  "main": "sifu-cli.js",
+  "main": "dist/sifu-cli.js",
+  "types": "dist/sifu-cli.d.ts",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   }
 }
