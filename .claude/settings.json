@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/dna-enforcer.js",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

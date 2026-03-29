@@ -1,0 +1,13 @@
+{
+  "name": "sifu-dev",
+  "description": "Development marketplace for SIFU DNA-first framework",
+  "owner": { "name": "AI4Science-WestlakeU" },
+  "plugins": [
+    {
+      "name": "sifu",
+      "description": "DNA-first framework: append-only decision rationale for agentic development",
+      "version": "0.0.1",
+      "source": "./"
+    }
+  ]
+}

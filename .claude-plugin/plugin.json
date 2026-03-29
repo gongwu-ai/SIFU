@@ -1,0 +1,12 @@
+{
+  "name": "sifu",
+  "description": "DNA-first framework for agentic development. Append-only decision rationale that outlives any agent.",
+  "version": "0.0.1",
+  "author": { "name": "AI4Science-WestlakeU" },
+  "homepage": "https://github.com/AI4Science-WestlakeU/SIFU",
+  "repository": "https://github.com/AI4Science-WestlakeU/SIFU",
+  "license": "MIT",
+  "skills": "./.claude/skills/",
+  "hooks": "./.claude/hooks/",
+  "keywords": ["dna", "decision-rationale", "append-only", "agentic", "traceability"]
+}
