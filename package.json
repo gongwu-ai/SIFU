@@ -9,7 +9,8 @@
   "files": [
     "sifu-init.js",
     "sifu-cli.js",
-    ".claude"
+    ".claude",
+    ".sifuignore"
   ],
   "keywords": [
     "ai",

@@ -140,4 +140,4 @@ sifu hash <file>      # Generate DNA hash8 ID
 
 ## Full Specification
 
-See [`docs/2026032913_DNA_FORMAT_SPEC.md`](../../docs/2026032913_DNA_FORMAT_SPEC.md) for complete format details.
+See `docs/2026032913_DNA_FORMAT_SPEC.md` in the project root for complete format details.
