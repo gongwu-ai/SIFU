@@ -38,10 +38,11 @@ const ALWAYS_EXEMPT = new Set([".sifuignore"]);
 
 /**
  * Parses a .sifuignore file into { dirs, extensions, filenames } sets.
- * Syntax: same as .gitignore (# comments, blank lines ignored).
+ * Simplified .gitignore-like syntax (# comments, blank lines ignored).
  *   - Lines ending with `/`         → directory exemptions
  *   - Lines starting with `*.`      → extension exemptions
- *   - Everything else               → filename exemptions
+ *   - Lines with `*` elsewhere      → prefix glob (e.g. `.env.*` matches `.env.prod`)
+ *   - Everything else               → exact filename exemptions
  * @param {string} content - raw .sifuignore file content
  * @returns {{ dirs: Set<string>, extensions: Set<string>, filenames: Set<string> }}
  */
@@ -49,6 +50,7 @@ function parseSifuIgnore(content) {
   const dirs = new Set();
   const extensions = new Set();
   const filenames = new Set();
+  const prefixes = [];
   for (const raw of content.split("\n")) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
@@ -56,11 +58,15 @@ function parseSifuIgnore(content) {
       dirs.add(line.slice(0, -1));
     } else if (line.startsWith("*.")) {
       extensions.add("." + line.slice(2));
+    } else if (line.includes("*")) {
+      // Prefix glob: ".env.*" matches ".env.prod", ".env.local", etc.
+      const prefix = line.substring(0, line.indexOf("*"));
+      prefixes.push(prefix);
     } else {
       filenames.add(line);
     }
   }
-  return { dirs, extensions, filenames };
+  return { dirs, extensions, filenames, prefixes };
 }
 
 /**
@@ -78,6 +84,7 @@ function loadExemptions(root) {
       dirs: DEFAULT_EXEMPT_DIRS,
       extensions: DEFAULT_EXEMPT_EXTENSIONS,
       filenames: DEFAULT_EXEMPT_FILENAMES,
+      prefixes: [".env."],
     };
   }
 }
@@ -101,6 +108,7 @@ function needsDna(relPath) {
   const ex = getExemptions();
   if (ex.filenames.has(name)) return false;
   if (ex.extensions.has(path.extname(relPath))) return false;
+  if (ex.prefixes && ex.prefixes.some(p => name.startsWith(p))) return false;
   const parts = relPath.replace(/\\/g, "/").split("/");
   for (const p of parts) { if (ex.dirs.has(p)) return false; }
   return true;

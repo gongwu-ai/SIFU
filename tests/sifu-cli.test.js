@@ -192,4 +192,18 @@ describe(".sifuignore", () => {
     expect(out).not.toContain("data.csv");
     expect(out).toContain("app.js");
   });
+
+  it("supports prefix globs like .env.*", () => {
+    fs.writeFileSync(path.join(tmpDir, ".env.prod"), "SECRET=x");
+    fs.writeFileSync(path.join(tmpDir, ".env.local"), "SECRET=y");
+    fs.writeFileSync(path.join(tmpDir, ".sifuignore"), ".env.*\n");
+    const out = run("check", tmpDir);
+    expect(out).not.toContain(".env.prod");
+    expect(out).not.toContain(".env.local");
+    expect(out).toContain("app.js");
+  });
+
+  it("rejects path escape with ../", () => {
+    expect(() => run("new ../escape.js", tmpDir)).toThrow();
+  });
 });
