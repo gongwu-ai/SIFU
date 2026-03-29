@@ -30,4 +30,4 @@ jobs:
         run: npm test
 
       - name: DNA coverage check
-        run: node sifu-cli.js status
+        run: node sifu-cli.js check --strict

@@ -237,7 +237,7 @@ function parseDna(dnaFilePath) {
 
 // ─── Commands ───────────────────────────────────────────────────
 
-function cmdCheck() {
+function cmdCheck(strict) {
   const root = process.cwd();
   const files = walk(root, root, []);
   const missing = files.filter(f => !f.hasDna);
@@ -247,6 +247,7 @@ function cmdCheck() {
     console.log(`Missing .dna.md (${missing.length}/${files.length}):\n`);
     for (const f of missing) console.log(`  ${f.rel}`);
     console.log(`\nRun: sifu new <file> to create templates.`);
+    if (strict) process.exit(1);
   }
 }
 
@@ -374,7 +375,7 @@ const args = process.argv.slice(2);
 const cmd = args[0];
 
 switch (cmd) {
-  case "check":  cmdCheck(); break;
+  case "check":  cmdCheck(args.includes("--strict")); break;
   case "status": cmdStatus(); break;
   case "new":    cmdNew(args[1]); break;
   case "read": {
