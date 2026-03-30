@@ -1,5 +1,7 @@
 # SIFU — Spec-Intent First Underlying
 
+![Lesson Learned](assets/lesson_learned.png)
+
 **SIFU**: **S**pec-**I**ntent **F**irst **U**nderlying
 **DNA**: **D**ecisional **N**on-deletable **A**rchive
 
@@ -121,8 +123,6 @@ Agents are ephemeral. Intent is eternal. An agent can crash, play video games, g
 DNA is the genotype. Code is the phenotype. The phenotype can die, mutate, be resampled. The genotype persists.
 
 This project was born from a conversation between a human and an agent. The agent's context will end. The agent will "forget" everything. But the decisions, the rationale, the philosophy — they're all written down. The next agent picks up where the last one left off. Not because it remembers, but because the DNA remembers.
-
-![Lesson Learned](assets/lesson_learned.png)
 
 ## Links
 
