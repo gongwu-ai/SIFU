@@ -1,105 +1,129 @@
-# SIFU
+# SIFU — Spec-Intent First Underlying
 
-> 一日为师，终身为师。
+**SIFU**: **S**pec-**I**ntent **F**irst **U**nderlying
+**DNA**: **D**ecisional **N**on-deletable **A**rchive
 
-![Lesson Learned](assets/lesson_learned.png)
+Decision tracking for AI agents. Every file gets a hidden `.dna.md` sidecar recording **what changed and why**.
 
-**SIFU** = **S**pec-**I**ntent **F**irst **U**nderlying | **DNA** = **D**ecisional **N**on-deletable **A**rchive
+Git tracks what changed. SIFU tracks why it was decided that way.
 
-**Sifu** (师傅, Cantonese for "master/mentor") is how you address someone who teaches you a craft. The phrase above means "a teacher for a day is a master for life." In SIFU, the master is not a person — it's the decisions themselves. Agents come and go, but the rationale they leave behind guides every agent that follows.
+```
+src/api.js              ← code (phenotype)
+src/.api.js.dna.md      ← decision history (genotype, hidden)
+```
 
-**Agents are ephemeral. Intent is eternal.** An agent can crash, play video games, go to Tesco — it doesn't matter. Once the decision is written, someone will come and implement. Same agent, different agent, next week, next year. DNA is the genotype. Code is the phenotype. The phenotype can die, mutate, be resampled. The genotype persists. This project was born from a conversation between a human and an agent. The agent's context will end. The agent will "forget" everything. But the decisions, the rationale, the philosophy — they're all written down. The next agent picks up where the last one left off. Not because it remembers, but because the DNA remembers.
-
-## The Problem
-
-AI coding agents don't just forget. They **drift**. New sessions, compacted contexts, agent handoffs all cause decision logic to silently change. The code looks fine. The decisions are inconsistent.
-
-Git tracks **what** changed. Nobody tracks **why** it was decided that way.
-
-## The Solution
-
-SIFU adds a hidden `.dna.md` sidecar to every authored file. DNA records **what changed + why** in a 5-column table, newest-first. This keeps decision-making consistent across:
-
-- **Session boundaries** — new session reads `.dna.md`, inherits prior decision logic
-- **Context compaction** — compressed context loses reasoning, `.dna.md` preserves it on disk
-- **Agent handoffs** — Agent B reads Agent A's rationale, continues the same trajectory
-- **Multi-agent collaboration** — all agents share `.dna.md` as the single source of decision truth
-- **Framework switches** — switch tools, switch models, DNA stays
-
-Code is disposable. Decision rationale persists.
-
-## Quick Start
+## Install
 
 ```bash
-cd your-project
 npx @gongwu-ai/sifu init
 ```
 
-Or tell your AI agent: "Install SIFU — run `npx @gongwu-ai/sifu init`"
-
-## What It Does
-
-1. **Installs `/sifu` skill** into your harness (Claude Code, Cursor, Codex, Gemini, etc.)
-2. **Soft enforcement** — SKILL instructions bind all write operations to DNA-first workflow
-3. **No hooks, no injection** — works with any harness that supports skills
-
-## DNA Format
-
-```
-sifu-init.js          ← code (phenotype)
-.sifu-init.js.dna.md  ← hidden DNA sidecar (genotype)
-```
-
-5-column table, newest-first:
-```markdown
----
-file: sifu-init.js
-purpose: SIFU initializer — installs SKILL into detected harness
----
-
-| ID | Time | Agent | Act | Rationale |
-|----|------|-------|-----|-----------|
-| c3d4e5f6 | 202603291530+0800 | opus | add harness detection | auto-detect installed tools |
-| a1b2c3d4 | 202603291402+0800 | opus | initial creation | need installer script |
-```
-
-## Works With Everything
-
-SIFU is a layer, not a replacement. No conflicts with existing frameworks (Superpowers, Ralph, GSD, OpenSpec, etc.) — different skills, different concerns.
-
-> Integration details: TBD — see [INTEGRATIONS.md](INTEGRATIONS.md)
+Detects your harness, installs the `/sifu` skill, creates `.sifuignore`, protects `.gitignore`. That's it.
 
 ## Supported Harnesses
 
 | Harness | Status |
 |---------|--------|
-| **Claude Code** | Supported — SKILL + CLI |
-| Cursor / Windsurf | TBD |
-| Codex | TBD |
-| Gemini CLI | TBD |
-| OpenCode | TBD |
-| Copilot | TBD |
-| Cline / RooCode / Kiro | TBD |
+| **Claude Code** | ✅ Supported |
+| **Codex (OpenAI)** | ✅ Supported |
+| Cursor / Windsurf | Adapter ready |
+| Gemini CLI | Adapter ready |
+| Cline / RooCode / Kiro | Adapter ready |
+| Copilot / OpenCode | Adapter ready |
 
-Enforcement is via SKILL instructions (soft, no hooks). Harness adapter pattern ready — contributions welcome.
+Enforcement is via SKILL instructions — no hooks, no CLAUDE.md injection. Any harness that supports skills can use SIFU.
 
 ## CLI
 
 ```bash
-sifu check              # List files missing .dna.md
-sifu status             # DNA coverage %
-sifu new <file>         # Create .dna.md template
-sifu read <file>        # Top 10 entries (newest first)
-sifu sync               # Update frontmatter caches
-sifu hash <file>        # Generate hash8 ID
+# Core workflow
+sifu log <file> --act "..." --rationale "..." [--agent name]
+                            # Insert DNA entry (primary command)
+sifu deprecate <file> <id> --rationale "..."
+                            # Mark an entry as deprecated
+
+# Inspection
+sifu check [--strict]       # List files missing .dna.md
+sifu status                 # DNA coverage %
+sifu read <file> [--all]    # Show entries (newest first)
+
+# Utilities
+sifu new <file>             # Create .dna.md template
+sifu sync                   # Update frontmatter caches
+sifu hash <file>            # Generate hash8 ID
+sifu init                   # Install SIFU in current project
 ```
 
+## DNA Format
+
+5-column table, newest-first, insert-only:
+
+```markdown
+---
+file: src/api.js
+purpose: Task manager API — ties together models, store, and filters
+last: c3d4e5f6 @ 20260329153012123+0800
+---
+
+| ID | Time | Agent | Act | Rationale |
+|----|------|-------|-----|-----------|
+| c3d4e5f6 | 20260329153012123+0800 | opus | add auth check | every endpoint needs bearer token |
+| a1b2c3d4 | 20260329140200000+0800 | opus | initial creation | need unified API layer |
+```
+
+- **ID**: 8-char hex, content-addressed (`sha256(path|timestamp|before_hash)`)
+- **Time**: ms-precision timestamp (multi-agent safe)
+- **Insert-only**: never modify, delete, or reorder existing rows
+- **Deprecation**: new row with `act = "deprecated <old_id>"`
+- **File deletion**: log before `rm`, sidecar stays as tombstone
+
+## How It Works
+
+1. Agent gets a task
+2. Before writing any non-exempt file: `sifu log <file> --act "..." --rationale "..."`
+3. CLI creates/updates `.dna.md` — handles timestamp, hash, frontmatter
+4. Output shows prior decisions so agent sees context:
+   ```
+   + .api.js.dna.md — c3d4e5f6 (3 prior)
+   Context (recent 3):
+     a1b2c3d4 | opus | initial creation | need unified API layer
+   ```
+5. Agent writes code
+6. If acting on audit/review feedback → `sifu read <file> --all` first, deprecate conflicting entries
+
+## What It Solves
+
+| Problem | How SIFU helps |
+|---------|---------------|
+| New session loses reasoning | `.dna.md` persists on disk |
+| Context compaction drops decisions | DNA survives compaction |
+| Agent handoff drifts | Agent B reads Agent A's rationale |
+| Multi-agent conflicts | Shared DNA as single decision source |
+| Framework switches | DNA stays, tools change |
+
 ## Philosophy
+
+> **一日为师，终身为师。** Once a master, always a master.
+
+**Sifu** (师傅, Cantonese for "master/mentor") is how you address someone who teaches you a craft. In SIFU, the master is not a person — it's the decisions themselves. Agents come and go, but the rationale they leave behind guides every agent that follows.
+
 
 | Principle | Meaning |
 |-----------|---------|
 | DNA-first | Decision rationale before implementation, always |
 | Phenotype disposable | Code can be deleted and regenerated from DNA |
 | Wrong is OK | Bad DNA can exist; append correction, never delete |
-| Insert-only | New entries at TOP (newest-first). No delete, modify, or reorder. |
-| 宁滥勿缺 | When in doubt, write the rationale |
+| Insert-only | Newest-first. No delete, modify, or reorder. |
+| Better verbose than missing | When in doubt, write the rationale |
+
+Agents are ephemeral. Intent is eternal. An agent can crash, play video games, go to Tesco — it doesn't matter. Once the decision is written, someone will come and implement. Same agent, different agent, next week, next year.
+
+DNA is the genotype. Code is the phenotype. The phenotype can die, mutate, be resampled. The genotype persists.
+
+This project was born from a conversation between a human and an agent. The agent's context will end. The agent will "forget" everything. But the decisions, the rationale, the philosophy — they're all written down. The next agent picks up where the last one left off. Not because it remembers, but because the DNA remembers.
+
+![Lesson Learned](assets/lesson_learned.png)
+
+## Links
+
+- npm: [`@gongwu-ai/sifu`](https://www.npmjs.com/package/@gongwu-ai/sifu)
