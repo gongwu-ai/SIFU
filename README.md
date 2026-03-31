@@ -1,8 +1,8 @@
-# SIFU — Spec-Intent First Underlying
+# SIFU — Swarm Intent Filesystem Union
 
 ![Lesson Learned](assets/lesson_learned.png)
 
-**SIFU**: **S**pec-**I**ntent **F**irst **U**nderlying\
+**SIFU**: **S**warm **I**ntent **F**ilesystem **U**nion\
 **DNA**: **D**ecisional **N**on-deletable **A**rchive
 
 Decision tracking for AI agents. Every file gets a hidden `.dna.md` sidecar recording **what changed and why**.
